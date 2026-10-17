@@ -12,7 +12,8 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 OUT = Path(__file__).resolve().parent.parent / ".screens"
-FLAGS = ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"]
+GPU_FLAGS = ["--use-gl=angle", "--use-angle=metal", "--ignore-gpu-blocklist"]
+SOFTWARE_FLAGS = ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"]
 
 
 def main() -> None:
@@ -24,6 +25,7 @@ def main() -> None:
     parser.add_argument("--height", type=int, default=1080)
     parser.add_argument("--press", action="append", default=[], help="key[@seconds], pressed once at that time")
     parser.add_argument("--click", action="append", default=[], help="text[@seconds], clicks the first button with that text")
+    parser.add_argument("--software", action="store_true", help="software WebGL for machines without a GPU (slow)")
     parser.add_argument("--fps", action="store_true", help="measure frames per second after the last shot")
     args = parser.parse_args()
 
@@ -39,7 +41,10 @@ def main() -> None:
     actions.sort()
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(args=FLAGS)
+        if args.software:
+            browser = p.chromium.launch(args=SOFTWARE_FLAGS)
+        else:
+            browser = p.chromium.launch(channel="chromium", args=GPU_FLAGS)
         page = browser.new_page(viewport={"width": args.width, "height": args.height})
         problems: list[str] = []
         page.on("console", lambda m: problems.append(f"{m.type}: {m.text}") if m.type in ("error", "warning") else None)
