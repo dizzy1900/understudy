@@ -50,6 +50,8 @@ export interface Caption {
   text: string;
   priority: "low" | "high";
   at: number;
+  /** How long it stays up. Spoken lines last as long as the voice does. */
+  ttl: number;
 }
 
 export interface IncidentState {
@@ -133,7 +135,7 @@ export interface StreamState {
   toggleMuted: () => void;
   selectClass: (name: string | null) => void;
   setBriefing: (text: string | null) => void;
-  pushCaption: (text: string, priority?: "low" | "high") => void;
+  pushCaption: (text: string, priority?: "low" | "high", ttl?: number) => void;
 }
 
 let counter = 0;
@@ -225,9 +227,9 @@ export const useStream = create<StreamState>((set, get) => ({
       briefing: text,
       captions: text ? state.captions.filter((c) => c.text.trim() !== text) : state.captions,
     })),
-  pushCaption: (text, priority = "low") =>
+  pushCaption: (text, priority = "low", ttl = CAPTION_TTL_MS) =>
     set((state) => ({
-      captions: [...state.captions, { key: ++counter, text, priority, at: Date.now() }].slice(-MAX_CAPTIONS),
+      captions: [...state.captions, { key: ++counter, text, priority, at: Date.now(), ttl }].slice(-MAX_CAPTIONS),
     })),
 
   handle: (event) => {
@@ -283,7 +285,7 @@ export const useStream = create<StreamState>((set, get) => ({
         nodes[id] = { ...node, status: hold.next };
       }
     }
-    const captions = state.captions.filter((c) => now - c.at < CAPTION_TTL_MS + 1500);
+    const captions = state.captions.filter((c) => now - c.at < c.ttl + 1500);
     const patch: Partial<StreamState> = {};
     if (nodes !== state.nodes) patch.nodes = nodes;
     if (nodeHolds !== state.nodeHolds) patch.nodeHolds = nodeHolds;
@@ -471,14 +473,9 @@ function reduce(state: StreamState, event: StreamEvent, now: number): Partial<St
         ladderMoves: [...state.ladderMoves, move].slice(-MAX_MOVES),
       };
     }
-    case "narration": {
-      const d = event.data;
-      if (state.briefing !== null && d.text.trim() === state.briefing) return base;
-      return {
-        ...base,
-        captions: [...state.captions, { key: ++counter, text: d.text, priority: d.priority, at: now }].slice(-MAX_CAPTIONS),
-      };
-    }
+    // Narration is captioned by the speech queue, in step with the voice.
+    case "narration":
+      return base;
     case "ledger":
       return {
         ...base,

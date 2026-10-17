@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import fixture from "./__fixtures__/real-events.json";
-import { DOWN_HOLD_MS, resetStream, tokensServed, useStream } from "./store";
+import { CAPTION_TTL_MS, DOWN_HOLD_MS, resetStream, tokensServed, useStream } from "./store";
 import type { StreamEvent } from "./types";
 
 const events = fixture as unknown as StreamEvent[];
@@ -139,11 +139,21 @@ describe("real event stream", () => {
     expect(state.ladderMoves[0].total).toBe(update.data.evidence.total);
   });
 
-  it("keeps narration and skill notes", () => {
+  it("keeps skill notes and leaves narration captions to the speech queue", () => {
     feed(events);
     const state = useStream.getState();
-    expect(state.captions.length).toBeGreaterThan(0);
+    expect(events.some((e) => e.type === "narration")).toBe(true);
+    expect(state.captions).toHaveLength(0);
     expect(Object.keys(state.skillNotes).length).toBeGreaterThan(0);
+  });
+
+  it("lets a caption set its own lifetime", () => {
+    useStream.getState().pushCaption("A long line.", "high", 15_000);
+    useStream.getState().pushCaption("A short line.");
+    const [long, short] = useStream.getState().captions;
+    expect([long.ttl, short.ttl]).toEqual([15_000, CAPTION_TTL_MS]);
+    useStream.getState().sweep(Date.now() + CAPTION_TTL_MS + 2000);
+    expect(useStream.getState().captions.map((c) => c.text)).toEqual(["A long line."]);
   });
 
   it("ignores duplicates, so replaying the stream changes nothing", () => {
@@ -161,18 +171,11 @@ describe("real event stream", () => {
     expect(useStream.getState().stamps).toEqual({});
   });
 
-  it("does not caption a narration that the briefing card already shows", () => {
-    feed(events);
-    const text = "While you were away: 3 incidents opened.";
-    const narrate = (n: number) =>
-      useStream.getState().handle({ type: "narration", ts: 9e9 + n, data: { text, priority: "high" } } as StreamEvent);
-
-    narrate(0);
-    expect(useStream.getState().captions.some((c) => c.text === text)).toBe(true);
+  it("removes the caption of a line the briefing card now shows", () => {
+    const text = "Welcome back. 3 incidents opened.";
+    useStream.getState().pushCaption(text, "high");
+    useStream.getState().pushCaption("Another line.", "low");
     useStream.getState().setBriefing(text);
-    expect(useStream.getState().captions.some((c) => c.text === text)).toBe(false);
-
-    narrate(1);
-    expect(useStream.getState().captions.some((c) => c.text === text)).toBe(false);
+    expect(useStream.getState().captions.map((c) => c.text)).toEqual(["Another line."]);
   });
 });
