@@ -42,13 +42,14 @@ class ModelSpec:
     cached_per_m: float
 
 
-# IDs are case-sensitive. scripts/check_models.py confirms them against GET /v1/models.
+# IDs are case-sensitive and match GET /v1/models. Docs pages spell several of them differently.
+# "ultra" is not enabled for every project; callers fall back to "super" when it is not listed.
 MODELS: dict[str, ModelSpec] = {
     m.key: m
     for m in (
-        ModelSpec("super", "nvidia/Nemotron-3-Super-120B-A12B", 0.30, 2.40, 0.15),
-        ModelSpec("lightning", "nvidia/nemotron-3.5-lightning-30b-a3b", 0.05, 0.20, 0.03),
-        ModelSpec("nano", "nvidia/Nemotron-3-Nano-30B-A3B", 0.05, 0.20, 0.03),
+        ModelSpec("super", "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B", 0.30, 2.40, 0.15),
+        ModelSpec("lightning", "nvidia/Nemotron-3.5-Lightning-30B-A3B", 0.05, 0.20, 0.03),
+        ModelSpec("nano", "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B", 0.05, 0.20, 0.03),
         ModelSpec("ultra", "nvidia/NVIDIA-Nemotron-3-Ultra-550B", 1.00, 3.20, 0.25),
         ModelSpec("omni", "nvidia/Nemotron-3-Nano-Omni-Reasoning-30B-A3B", 0.30, 1.83, 0.30),
     )
