@@ -691,17 +691,18 @@ class Sim:
 
     # operator-facing helpers ---------------------------------------------------------------------
 
-    def briefing(self) -> str:
+    def briefing(self) -> dict:
         away = self.away or {"counts": {k: 0 for k in self.counts}, "cost": 0.0}
         delta = {k: self.counts[k] - away["counts"][k] for k in self.counts}
         spent = self.cost_incidents + self.cost_other - away["cost"]
-        return (
-            f"While you were away: {delta['incidents']} incidents opened, {delta['verified']} verified, "
+        text = (
+            f"Welcome back. {delta['incidents']} incidents opened, {delta['verified']} verified, "
             f"{delta['rejected']} fix claims rejected by the referee. "
             f"{delta['promotions']} promotions and {delta['demotions']} demotions. Spend ${spent:.2f}."
         )
+        return {"text": text, "stats": {**delta, "cost_usd": round(spent, 4)}}
 
-    async def chaos(self, command: str) -> list[dict]:
+    async def chaos(self, command: str) -> dict:
         agent = self.spawn_agent("chaos", "nano")
         text = command.lower()
         if "storm" in text:
@@ -716,7 +717,9 @@ class Sim:
         summary = ", ".join(f"{i['fault_class']} on {i['node_id']}" for i in injected) or "nothing to inject"
         self.emit(ev.AgentThought(agent_id=agent, text=f"Parsed command: {summary}."))
         self.emit(ev.AgentDone(agent_id=agent))
-        return injected
+        confirmation = f"Done. Injected {summary}." if injected else "Nothing to inject. The nodes are busy."
+        await self.narrate(confirmation, "high")
+        return {"injected": injected, "plan": {"command": command}, "text": confirmation}
 
 
 class ChaosRequest(BaseModel):
@@ -787,11 +790,19 @@ def create_app(speed: float = 1.0, seed: int = 7) -> FastAPI:
 
     @app.get("/api/voice/status")
     async def voice_status() -> dict:
-        return {"available": False, "model": settings.MODELS["omni"].id, "reason": "mock server"}
+        if os.environ.get("MOCK_VOICE"):
+            return {"available": True, "path": "omni", "model": settings.MODELS["omni"].id, "formats": ["wav"]}
+        return {
+            "available": False,
+            "path": "browser",
+            "model": settings.MODELS["omni"].id,
+            "formats": ["wav"],
+            "reason": "mock server",
+        }
 
     @app.post("/api/chaos")
     async def post_chaos(body: ChaosRequest) -> dict:
-        return {"injected": await sim.chaos(body.command)}
+        return await sim.chaos(body.command)
 
     @app.post("/api/inject")
     async def post_inject(body: InjectRequest) -> dict:
@@ -818,14 +829,17 @@ def create_app(speed: float = 1.0, seed: int = 7) -> FastAPI:
     @app.post("/api/back")
     async def post_back() -> dict:
         since = sim.away["since"] if sim.away else sim.since
-        text = sim.briefing()
+        report = sim.briefing()
         sim.away = None
-        return {"since": since, "briefing": text, "ledger": sim.ledger().model_dump(mode="json")}
+        await sim.narrate(report["text"], "high")
+        return {**report, "since": since}
 
     @app.post("/api/voice")
     async def post_voice(request: Request) -> dict:
-        await request.body()
-        return {"transcript": "what happened while I was away", "reply": sim.briefing()}
+        audio = await request.body()
+        if audio[:4] != b"RIFF":
+            raise HTTPException(415, "send a wav file")
+        return {"transcript": os.environ.get("MOCK_TRANSCRIPT", "storm rows two and three")}
 
     @app.post("/api/promote/run")
     async def post_promote() -> dict:

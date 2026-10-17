@@ -10,6 +10,7 @@ import ReplayBanner from "./ReplayBanner";
 import SkillCardPanel from "./SkillCardPanel";
 import Stats from "./Stats";
 import { useHotkeys } from "./useHotkeys";
+import { ListeningRing } from "./VoicePanel";
 
 export default function Overlay() {
   useHotkeys();
@@ -28,6 +29,7 @@ export default function Overlay() {
       <SkillCardPanel />
       <Captions />
       <Controls />
+      <ListeningRing />
       <Intro />
     </div>
   );

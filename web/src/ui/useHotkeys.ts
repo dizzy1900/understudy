@@ -1,14 +1,8 @@
 import { useEffect } from "react";
 
 import { useStream } from "../store";
-import {
-  askBack,
-  sendStorm,
-  toggleFullscreen,
-  toggleReplay,
-  voiceStart,
-  voiceStop,
-} from "./actions";
+import { cancelBack, imBack } from "../voice/flow";
+import { sendStorm, toggleFullscreen, toggleReplay, useUi, voiceStart, voiceStop } from "./actions";
 
 function isTyping(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
@@ -32,12 +26,16 @@ export function useHotkeys(): void {
         return;
       }
       if (event.repeat) return;
+      if (event.key === "Escape") {
+        if (useUi.getState().backPhase !== "idle") cancelBack();
+        return;
+      }
       switch (event.key.toLowerCase()) {
         case "s":
           void sendStorm();
           break;
         case "b":
-          void askBack();
+          void imBack();
           break;
         case "r":
           toggleReplay();

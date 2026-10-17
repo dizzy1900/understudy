@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from config import settings
-from understudy.agents import triage
+from understudy.agents import narrator, triage
 from understudy.agents.responder import Outcome, Responder
 from understudy.context import Context
 from understudy.events import LadderEvidence, LadderUpdate
@@ -414,11 +414,7 @@ class Promoter:
                 evidence=LadderEvidence(passed=passed, total=total, mean_cost_usd=round(mean, 6)),
             )
         )
-        await ctx.say(
-            f"{fault_class} moves from {rung} to {candidate}: {passed} of {total} held-out instances fixed, "
-            f"mean cost ${mean:.4f} against ${baseline:.4f} per live incident at {rung}.",
-            "high",
-        )
+        await ctx.say(narrator.promotion_line(fault_class, rung, candidate, passed, total, mean, baseline), "high")
         return True
 
     async def _retry_script(self, fault_class: str, trials: list[Trial]) -> None:
@@ -462,11 +458,7 @@ class Promoter:
                     evidence=LadderEvidence(passed=clean, total=DEMOTE_WINDOW, mean_cost_usd=round(mean, 6)),
                 )
             )
-            await ctx.say(
-                f"{fault_class} goes back from {rung} to {target}: only {clean} of the last {DEMOTE_WINDOW} live "
-                f"incidents at {rung} were fixed without escalation.",
-                "high",
-            )
+            await ctx.say(narrator.demotion_line(fault_class, rung, target, clean, DEMOTE_WINDOW), "high")
 
     # held-out classes -----------------------------------------------------------------
 
@@ -494,7 +486,7 @@ class Promoter:
                 for c in settings.HELDOUT_FAULT_CLASSES
             )
             ctx.think(agent, f"Held-out classes at {HELDOUT_RUNG}: {summary}.")
-            await ctx.say(f"Held-out check at the {HELDOUT_RUNG} rung: {summary} fixed.", "low", polish=False)
+            await ctx.say(narrator.heldout_line(HELDOUT_RUNG, summary), "low", polish=False)
             return trials
         finally:
             ctx.done(agent)

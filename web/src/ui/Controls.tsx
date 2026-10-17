@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 
 import BreakMenu from "./BreakMenu";
-import { askBack, sendStorm, toggleReplay, useUi, voiceStart, voiceStop } from "./actions";
+import { imBack } from "../voice/flow";
+import { useVoice } from "../voice/voiceStore";
+import { sendStorm, toggleReplay, useUi, voiceStart, voiceStop } from "./actions";
 import { useReplay } from "./replayStore";
+import { CommandBox, HeardChip } from "./VoicePanel";
 
 function MicGlyph() {
   return (
@@ -24,9 +27,12 @@ export default function Controls() {
   const replayLoading = useReplay((s) => s.loading);
   const stormSentAt = useUi((s) => s.stormSentAt);
   const stormBusy = useUi((s) => s.stormBusy);
-  const backBusy = useUi((s) => s.backBusy);
+  const backPhase = useUi((s) => s.backPhase);
   const talking = useUi((s) => s.talking);
   const voiceHint = useUi((s) => s.voiceHint);
+  const listen = useVoice((s) => s.listen);
+  const speechBlocked = useVoice((s) => s.blocked);
+  const hint = voiceHint || (speechBlocked ? "click once to turn on spoken narration" : "");
   const [sent, setSent] = useState(false);
 
   useEffect(() => {
@@ -38,8 +44,9 @@ export default function Controls() {
 
   return (
     <div className="controls">
-      <div className="voice-hint" data-show={voiceHint || undefined} role="status">
-        voice not connected
+      <HeardChip />
+      <div className="voice-hint" data-show={hint || undefined} role="status">
+        {hint}
       </div>
       <button
         type="button"
@@ -57,7 +64,7 @@ export default function Controls() {
         <button
           type="button"
           className="btn btn-mic"
-          data-on={talking || undefined}
+          data-on={talking || listen !== "idle" || undefined}
           aria-pressed={talking}
           onPointerDown={(event) => {
             event.preventDefault();
@@ -69,11 +76,17 @@ export default function Controls() {
           onContextMenu={(event) => event.preventDefault()}
         >
           <MicGlyph />
-          <span>{talking ? "Listening" : "Talk"}</span>
+          <span>{listen === "transcribing" ? "Sending" : talking || listen === "listening" ? "Listening" : "Talk"}</span>
           <kbd>Space</kbd>
         </button>
-        <button type="button" className="btn" disabled={backBusy} onClick={() => void askBack()}>
-          <span>I'm back</span>
+        <button
+          type="button"
+          className="btn"
+          data-on={backPhase === "briefing" || backPhase === "replay" || undefined}
+          disabled={backPhase === "fetching"}
+          onClick={() => void imBack()}
+        >
+          <span>{backPhase === "fetching" ? "Briefing" : backPhase === "idle" ? "I'm back" : "Skip"}</span>
           <kbd>B</kbd>
         </button>
         <button type="button" className="btn" data-on={replayActive || undefined} onClick={toggleReplay}>
@@ -81,6 +94,7 @@ export default function Controls() {
           <kbd>R</kbd>
         </button>
       </div>
+      <CommandBox />
     </div>
   );
 }

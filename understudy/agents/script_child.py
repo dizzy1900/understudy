@@ -118,7 +118,8 @@ def run(path: str) -> int:
         check_source(source)
         env: dict[str, Any] = {name: getattr(builtins, name) for name in SAFE_BUILTINS + SAFE_EXCEPTIONS}
         env.update({"__import__": _safe_import, "print": lambda *a, **k: print(*a, file=sys.stderr)})
-        namespace: dict[str, Any] = {"__builtins__": env, "__name__": "fix_script"}
+        # The three allowed modules are bound up front: compiled scripts often use yaml or re without importing them.
+        namespace: dict[str, Any] = {"__builtins__": env, "__name__": "fix_script", "re": re, "json": json, "yaml": yaml}
         exec(compile(source, path, "exec"), namespace)
         summary, root_cause = namespace["fix"](Tools(send, receive))
         if not isinstance(summary, str) or not isinstance(root_cause, str) or not root_cause.strip():

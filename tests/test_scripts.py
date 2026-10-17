@@ -48,6 +48,13 @@ async def test_script_reaches_the_node_only_through_the_tool_layer(tmp_path):
     assert [a["tool"] for a in await ctx.db.actions_for(iid)] == ["read_config", "write_config"]
 
 
+async def test_script_can_use_the_allowed_modules_without_importing_them(tmp_path):
+    ctx, tools, iid = await toolbox(tmp_path)
+    body = GOOD.replace("import yaml\n", "")
+    result = await run_script(tools, script(tmp_path, body))
+    assert result.ok and result.calls == 2
+
+
 async def test_script_cannot_claim_or_use_unknown_tools_and_jail_applies(tmp_path):
     ctx, tools, iid = await toolbox(tmp_path)
     body = (

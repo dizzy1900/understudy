@@ -1190,6 +1190,120 @@ kbd {
 
 /* ---------- motion ---------- */
 
+/* typed commands and listening */
+
+.command {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.command input {
+  width: 100%;
+  height: 50px;
+  padding: 0 48px 0 16px;
+  font: inherit;
+  font-size: 19px;
+  color: var(--text);
+  background: rgba(10, 12, 18, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  outline: none;
+  pointer-events: auto;
+  user-select: text;
+  -webkit-user-select: text;
+  transition: border-color 0.15s;
+}
+
+.command input::placeholder {
+  color: var(--dim);
+}
+
+.command input:focus {
+  border-color: var(--healthy);
+}
+
+.command kbd {
+  position: absolute;
+  right: 14px;
+  pointer-events: none;
+}
+
+.heard {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 12px);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: 760px;
+  padding: 10px 20px;
+  font-size: 24px;
+  font-weight: 600;
+  border-radius: 14px;
+  background: rgba(7, 8, 11, 0.7);
+  border: 1px solid rgba(62, 230, 255, 0.4);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  pointer-events: none;
+  animation: card-in 0.25s ease-out both;
+}
+
+.heard[data-state="transcribing"] {
+  border-color: rgba(255, 176, 32, 0.55);
+}
+
+.heard-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--healthy);
+  box-shadow: 0 0 14px var(--healthy);
+  animation: blink 1s ease-in-out infinite;
+}
+
+.heard[data-state="transcribing"] .heard-dot {
+  background: var(--repairing);
+  box-shadow: 0 0 14px var(--repairing);
+}
+
+.heard-label {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.heard-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.listen-ring {
+  inset: 0;
+  --lvl: 0;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: inset 0 0 calc(60px + var(--lvl) * 140px) calc(8px + var(--lvl) * 24px)
+    rgba(62, 230, 255, calc(0.4 + var(--lvl) * 0.45));
+  transition: opacity 0.2s;
+}
+
+.listen-ring[data-state="listening"] {
+  opacity: 1;
+}
+
+.listen-ring[data-state="transcribing"] {
+  opacity: 0.8;
+  box-shadow: inset 0 0 70px 5px rgba(255, 176, 32, 0.35);
+  animation: frame-pulse 1s ease-in-out infinite;
+}
+
 @keyframes blink {
   50% {
     opacity: 0.3;

@@ -349,7 +349,7 @@ async def test_resume_announces_open_incidents(tmp_path):
     ctx = await make_context(tmp_path, chat)
     said = []
 
-    async def say(text, priority="low", incident_id=None, polish=True):
+    async def say(text, priority="low", incident_id=None, polish=True, force=False):
         said.append(text)
         return text
 

@@ -60,9 +60,23 @@ export interface HistoryPayload {
 }
 
 export interface BackPayload {
-  since: number;
-  briefing: string;
-  ledger?: Ledger;
+  text: string;
+  stats: Record<string, unknown>;
+}
+
+export interface ChaosPayload {
+  injected: unknown[];
+  plan?: unknown;
+  text?: string;
+}
+
+export interface VoiceStatus {
+  available: boolean;
+  path: "omni" | "browser";
+  model?: string;
+  /** Containers the endpoint takes as they are. Anything else is converted to WAV first. */
+  formats?: string[];
+  reason?: string;
 }
 
 function demoNotFree<T>(injected: T[]): { injected: T[] } {
@@ -102,12 +116,27 @@ export const api = {
       (sim) => demoNotFree<unknown>(sim.injectAnywhere(node_id, fault_class)),
     ),
   chaos: (command: string) =>
-    viaDemo(() => post<{ injected: unknown[] }>("/api/chaos", { command }), (sim) => ({ injected: sim.chaos(command) })),
-  back: () => viaDemo(() => post<BackPayload>("/api/back"), (sim) => sim.comeBack()),
+    viaDemo(() => post<ChaosPayload>("/api/chaos", { command }), (sim) => ({ injected: sim.chaos(command) })),
+  back: () =>
+    viaDemo(() => post<BackPayload>("/api/back"), (sim) => {
+      const r = sim.comeBack() as unknown as { briefing?: string; text?: string };
+      return { text: r.text ?? r.briefing ?? "", stats: {} };
+    }),
   away: () => viaDemo(() => post<{ away_since: number }>("/api/away"), (sim) => ({ away_since: sim.goAway() })),
   promote: () =>
     viaDemo(
       () => post<{ started: boolean; reason?: string }>("/api/promote/run"),
       (sim) => ({ started: sim.runPromotion() }),
     ),
+  voiceStatus: () =>
+    viaDemo(
+      () => request<VoiceStatus>("/api/voice/status"),
+      () => ({ available: false, path: "browser" as const, reason: "voice runs against the live backend only" }),
+    ),
+  voice: (audio: Blob) =>
+    request<{ transcript: string }>("/api/voice", {
+      method: "POST",
+      headers: { "Content-Type": audio.type || "application/octet-stream" },
+      body: audio,
+    }),
 };
