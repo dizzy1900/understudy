@@ -90,6 +90,9 @@ class Orchestrator:
         self._tasks.append(self.ctx.background(self.librarian.backfill()))
         self._tasks += [asyncio.create_task(self._ledger_loop()), asyncio.create_task(self._heartbeat_loop())]
         if self.autopilot:
+            # A restart under autopilot keeps an earlier mark, so the briefing still covers the whole absence.
+            if await self.db.get_away_since() is None:
+                await self.db.set_away_since(time.time())
             self.chaos.start_autopilot()
         if self.serve:
             app = create_app(self)
