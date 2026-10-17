@@ -219,7 +219,12 @@ export const useStream = create<StreamState>((set, get) => ({
   setLadder: (ladder) => set((state) => ({ ladder: { ...state.ladder, ...(ladder as Record<string, Rung>) } })),
   toggleMuted: () => set((state) => ({ muted: !state.muted })),
   selectClass: (name) => set({ selectedClass: name }),
-  setBriefing: (text) => set({ briefing: text }),
+  // The backend also narrates the briefing; the card already shows it, so the caption copy is dropped.
+  setBriefing: (text) =>
+    set((state) => ({
+      briefing: text,
+      captions: text ? state.captions.filter((c) => c.text.trim() !== text) : state.captions,
+    })),
   pushCaption: (text, priority = "low") =>
     set((state) => ({
       captions: [...state.captions, { key: ++counter, text, priority, at: Date.now() }].slice(-MAX_CAPTIONS),
@@ -468,6 +473,7 @@ function reduce(state: StreamState, event: StreamEvent, now: number): Partial<St
     }
     case "narration": {
       const d = event.data;
+      if (state.briefing !== null && d.text.trim() === state.briefing) return base;
       return {
         ...base,
         captions: [...state.captions, { key: ++counter, text: d.text, priority: d.priority, at: now }].slice(-MAX_CAPTIONS),

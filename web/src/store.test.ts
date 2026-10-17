@@ -160,4 +160,19 @@ describe("real event stream", () => {
     expect(useStream.getState().captions).toHaveLength(0);
     expect(useStream.getState().stamps).toEqual({});
   });
+
+  it("does not caption a narration that the briefing card already shows", () => {
+    feed(events);
+    const text = "While you were away: 3 incidents opened.";
+    const narrate = (n: number) =>
+      useStream.getState().handle({ type: "narration", ts: 9e9 + n, data: { text, priority: "high" } } as StreamEvent);
+
+    narrate(0);
+    expect(useStream.getState().captions.some((c) => c.text === text)).toBe(true);
+    useStream.getState().setBriefing(text);
+    expect(useStream.getState().captions.some((c) => c.text === text)).toBe(false);
+
+    narrate(1);
+    expect(useStream.getState().captions.some((c) => c.text === text)).toBe(false);
+  });
 });
