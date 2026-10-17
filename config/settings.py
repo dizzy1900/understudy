@@ -1,6 +1,7 @@
 """Paths, endpoints, model registry and node layout shared across the project."""
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -25,8 +26,18 @@ MODELS_JSON = ROOT / "config" / "models.json"
 
 SERVER_PORT = 8000
 MOCK_PORT = 8765
-NODE_PORT_BASE = 9200
+NODE_PORT_BASE = 9101
 SET_PORT_RANGE = (9200, 9299)
+
+NODE_QUOTA_MB = 50
+NODE_MAX_TOKENS = 256
+NODE_WORKER_CONCURRENCY = 2
+NODE_UPSTREAM_LIMIT = 2
+MONITOR_INTERVAL_S = 5.0
+TRAFFIC_INTERVAL_S = 10.0
+SNAPSHOT_INTERVAL_S = 2.0
+REFEREE_WAIT_S = 8.0
+PROBE_LATENCY_LIMIT_S = 20.0
 
 Rung = Literal["super", "lightning", "script"]
 # Most expensive first; a promotion moves one step to the right.
@@ -93,3 +104,15 @@ def node_layout() -> tuple[NodeSpec, ...]:
 
 
 NODES = node_layout()
+
+
+def fleet_model_id() -> str:
+    """The model every node serves: the NANO id confirmed by check_models, else the registry default."""
+    try:
+        data = json.loads(MODELS_JSON.read_text())
+        found = (data.get("models", {}).get("nano") or {}).get("id")
+        if found:
+            return str(found)
+    except (OSError, ValueError):
+        pass
+    return MODELS["nano"].id
