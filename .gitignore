@@ -1,0 +1,10 @@
+.env
+data/
+fleet/nodes/
+config/models.json
+node_modules/
+web/dist/
+__pycache__/
+.pytest_cache/
+.venv/
+.DS_Store
