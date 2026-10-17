@@ -50,9 +50,23 @@ export interface HistoryPayload {
 }
 
 export interface BackPayload {
-  since: number;
-  briefing: string;
-  ledger?: Ledger;
+  text: string;
+  stats: Record<string, unknown>;
+}
+
+export interface ChaosPayload {
+  injected: unknown[];
+  plan?: unknown;
+  text?: string;
+}
+
+export interface VoiceStatus {
+  available: boolean;
+  path: "omni" | "browser";
+  model?: string;
+  /** Containers the endpoint takes as they are. Anything else is converted to WAV first. */
+  formats?: string[];
+  reason?: string;
 }
 
 export const api = {
@@ -63,7 +77,14 @@ export const api = {
   storm: (rows: number[]) => post<{ injected: unknown[] }>("/api/storm", { rows }),
   inject: (node_id: string, fault_class: string) =>
     post<{ injected: unknown[] }>("/api/inject", { node_id, fault_class }),
-  chaos: (command: string) => post<{ injected: unknown[] }>("/api/chaos", { command }),
+  chaos: (command: string) => post<ChaosPayload>("/api/chaos", { command }),
   back: () => post<BackPayload>("/api/back"),
   away: () => post<{ away_since: number }>("/api/away"),
+  voiceStatus: () => request<VoiceStatus>("/api/voice/status"),
+  voice: (audio: Blob) =>
+    request<{ transcript: string }>("/api/voice", {
+      method: "POST",
+      headers: { "Content-Type": audio.type || "application/octet-stream" },
+      body: audio,
+    }),
 };

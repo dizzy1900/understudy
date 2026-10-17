@@ -1,7 +1,10 @@
 import { OrbitControls } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { Spherical, Vector3 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+
+import { cancelSweep, endSweep, sweep, sweepPose } from "./sweep";
 
 export const CAMERA_TARGET: [number, number, number] = [-4.6, 1.0, -1.6];
 export const CAMERA_POSITION: [number, number, number] = [-4.6, 18.4, 25.2];
@@ -19,6 +22,9 @@ export default function CameraRig() {
   const camera = useThree((s) => s.camera);
   const size = useThree((s) => s.size);
   const drift = useRef({ angle: 0, dir: 1, resumeAt: 0 });
+  const pass = useRef<{ startedAt: number; from: Spherical } | null>(null);
+  const offset = useMemo(() => new Vector3(), []);
+  const swung = useMemo(() => new Spherical(), []);
 
   useEffect(() => {
     camera.setViewOffset(size.width, size.height, (size.width * RIGHT_MARGIN) / 2, size.height * LIFT, size.width, size.height);
@@ -29,6 +35,27 @@ export default function CameraRig() {
     const c = controls.current;
     if (!c) return;
     const d = drift.current;
+
+    if (sweep.active) {
+      if (!pass.current || pass.current.startedAt !== sweep.startedAt) {
+        offset.copy(camera.position).sub(c.target);
+        pass.current = { startedAt: sweep.startedAt, from: new Spherical().setFromVector3(offset) };
+      }
+      const t = (performance.now() - sweep.startedAt) / sweep.durationMs;
+      const pose = sweepPose(t);
+      const from = pass.current.from;
+      swung.set(from.radius * pose.distance, from.phi, from.theta + pose.azimuth);
+      offset.setFromSpherical(swung);
+      camera.position.copy(c.target).add(offset);
+      camera.lookAt(c.target);
+      c.autoRotate = false;
+      if (t >= 1) {
+        endSweep();
+        d.resumeAt = 0;
+      }
+      return;
+    }
+
     const idle = performance.now() >= d.resumeAt;
     c.autoRotate = idle;
     if (!idle) return;
@@ -58,6 +85,7 @@ export default function CameraRig() {
       autoRotate
       autoRotateSpeed={DRIFT_SPEED}
       onStart={() => {
+        cancelSweep();
         drift.current.resumeAt = Infinity;
       }}
       onEnd={() => {

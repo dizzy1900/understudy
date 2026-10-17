@@ -7,17 +7,18 @@ import { useReplay } from "./replayStore";
 interface UiState {
   stormSentAt: number;
   stormBusy: boolean;
-  backBusy: boolean;
+  /** Where the "I'm back" flow is: waiting on the briefing, reading it with the camera sweep, or replaying. */
+  backPhase: "idle" | "fetching" | "briefing" | "replay";
   talking: boolean;
-  voiceHint: boolean;
+  voiceHint: string;
 }
 
 export const useUi = create<UiState>(() => ({
   stormSentAt: 0,
   stormBusy: false,
-  backBusy: false,
+  backPhase: "idle",
   talking: false,
-  voiceHint: false,
+  voiceHint: "",
 }));
 
 export function shortError(error: unknown): string {
@@ -48,21 +49,6 @@ export async function sendStorm(): Promise<void> {
   }
 }
 
-export async function askBack(): Promise<void> {
-  if (useUi.getState().backBusy) return;
-  useUi.setState({ backBusy: true });
-  try {
-    const payload = await api.back();
-    const text = typeof payload?.briefing === "string" ? payload.briefing.trim() : "";
-    if (text) useStream.getState().setBriefing(text);
-    else say("Nothing to report since you left.", "low");
-  } catch (error) {
-    say(`Briefing unavailable: ${shortError(error)}`);
-  } finally {
-    useUi.setState({ backBusy: false });
-  }
-}
-
 export function toggleReplay(): void {
   const replay = useReplay.getState();
   if (replay.active || replay.loading) replay.stop();
@@ -77,20 +63,28 @@ export function toggleFullscreen(): void {
 
 let hintTimer = 0;
 
+export function showHint(text: string): void {
+  useUi.setState({ voiceHint: text });
+  window.clearTimeout(hintTimer);
+  hintTimer = window.setTimeout(() => useUi.setState({ voiceHint: "" }), 2600);
+}
+
 export function voiceStart(): void {
   if (useUi.getState().talking) return;
   const voice = window.understudyVoice;
   if (!voice) {
-    useUi.setState({ voiceHint: true });
-    window.clearTimeout(hintTimer);
-    hintTimer = window.setTimeout(() => useUi.setState({ voiceHint: false }), 2600);
+    showHint("voice not connected");
     return;
   }
   useUi.setState({ talking: true });
-  try {
-    void Promise.resolve(voice.start()).catch((error: unknown) => say(`Voice failed: ${shortError(error)}`));
-  } catch (error) {
+  const failed = (error: unknown) => {
+    useUi.setState({ talking: false });
     say(`Voice failed: ${shortError(error)}`);
+  };
+  try {
+    void Promise.resolve(voice.start()).catch(failed);
+  } catch (error) {
+    failed(error);
   }
 }
 
