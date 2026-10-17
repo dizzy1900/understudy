@@ -1,4 +1,5 @@
 """Librarian, promoter and demotion with a scripted model, a scripted referee and a faked fault layer."""
+import asyncio
 import json
 import time
 
@@ -307,6 +308,20 @@ async def test_trial_is_voided_not_failed_when_the_model_api_never_recovers(tmp_
     assert trial.void and not trial.passed
     assert await ctx.db.fetchall("SELECT * FROM heldout_reports") == []
     assert all(r["status"] == "unresolved" for r in await ctx.db.fetchall("SELECT status FROM incidents WHERE zone = 'proving'"))
+
+
+async def test_a_second_run_cannot_start_while_one_is_active(tmp_path, monkeypatch, fast):
+    ctx, inject = await promoter_context(tmp_path, trial_chat())
+    promoter = await make_promoter(ctx, inject, monkeypatch)
+
+    async def work():
+        await asyncio.sleep(0.05)
+
+    first = promoter._launch(work())
+    assert first is not None and promoter._launch(work()) is None
+    await first
+    assert promoter._launch(work()) is not None
+    await promoter._cycle
 
 
 async def test_run_now_reports_when_nothing_is_ready_or_a_run_is_active(tmp_path, monkeypatch, fast):

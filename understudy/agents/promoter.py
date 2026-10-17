@@ -112,6 +112,15 @@ class Promoter:
             return first_delay
         return float(last) + interval - time.time()
 
+    def _launch(self, work: Any) -> asyncio.Task | None:
+        """Starts `work` unless a run is active. The check and the start happen without an await in between, so
+        two loops cannot both begin."""
+        if self.busy():
+            work.close()
+            return None
+        self._cycle = asyncio.create_task(work)
+        return self._cycle
+
     async def _cycle_loop(self) -> None:
         while True:
             try:
@@ -121,10 +130,15 @@ class Promoter:
                     await asyncio.sleep(30.0)
                     continue
                 classes, _skipped = await self.plan(CLASSES_PER_CYCLE)
-                await self.ctx.db.set_setting("promoter_last_run", repr(time.time()))
                 if classes:
-                    self._cycle = asyncio.create_task(self._run_cycle(classes))
-                    await asyncio.wait({self._cycle})
+                    task = self._launch(self._run_cycle(classes))
+                    if task is None:
+                        await asyncio.sleep(30.0)
+                        continue
+                    await self.ctx.db.set_setting("promoter_last_run", repr(time.time()))
+                    await asyncio.wait({task})
+                else:
+                    await self.ctx.db.set_setting("promoter_last_run", repr(time.time()))
             except asyncio.CancelledError:
                 raise
             except Exception:
@@ -136,12 +150,15 @@ class Promoter:
             try:
                 wait = await self._due_in("heldout_last_run", HELDOUT_INTERVAL_S, FIRST_HELDOUT_DELAY_S)
                 await asyncio.sleep(max(1.0, wait))
-                if self.busy() or await self._budget_exhausted():
+                if await self._budget_exhausted():
+                    await asyncio.sleep(30.0)
+                    continue
+                task = self._launch(self.run_heldout())
+                if task is None:
                     await asyncio.sleep(30.0)
                     continue
                 await self.ctx.db.set_setting("heldout_last_run", repr(time.time()))
-                self._cycle = asyncio.create_task(self.run_heldout())
-                await asyncio.wait({self._cycle})
+                await asyncio.wait({task})
             except asyncio.CancelledError:
                 raise
             except Exception:
@@ -162,7 +179,8 @@ class Promoter:
         await self.ctx.db.set_setting("promoter_last_run", repr(time.time()))
         if not classes:
             return {"started": False, "reason": "no class is ready for a cheaper rung", "skipped": skipped}
-        self._cycle = asyncio.create_task(self._run_cycle(classes))
+        if self._launch(self._run_cycle(classes)) is None:
+            return {"started": False, "reason": "a proving run is already in progress"}
         return {
             "started": True,
             "classes": [{"fault_class": c, "from": r, "to": t} for c, r, t in classes],
