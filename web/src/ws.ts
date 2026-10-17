@@ -64,7 +64,8 @@ export function connect(): () => void {
     ws.onerror = () => ws.close();
   };
 
-  open();
+  // Deferred so React's dev-only double mount cancels before a socket is created.
+  timer = setTimeout(open, 0);
   const sweeper = setInterval(() => store().sweep(), 500);
 
   return () => {
