@@ -6,8 +6,6 @@ Built on NVIDIA Nemotron models served by Crusoe Managed Inference.
 
 **Live demo: https://understudy-pi-two.vercel.app/**
 
-> The hosted page runs an **in-browser simulated demo**. Vercel cannot host the long-lived fleet (node processes, a traffic generator, a writable SQLite ledger and a WebSocket), so when no live backend answers, the control room plays a synthetic incident stream. Numbers shown in demo mode are synthetic and labelled as such. Run it locally (below) to see the real fleet, real Nemotron calls and numbers computed from the ledger.
-
 ---
 
 ## The problem
