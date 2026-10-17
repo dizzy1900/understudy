@@ -2,8 +2,8 @@ PY ?= python3.11
 VENV := .venv
 PYTHON := $(VENV)/bin/python
 
-.PHONY: install check-models fleet orchestrator server autopilot stop mock-events \
-	web web-build report test kill-orchestrator
+.PHONY: install check-models fleet fleet-fg fleet-status orchestrator server autopilot stop mock-events \
+	web web-build report test test-fast kill-orchestrator
 
 install:
 	$(PY) -m venv $(VENV)
@@ -14,8 +14,16 @@ install:
 check-models:
 	$(PYTHON) -m scripts.check_models
 
+# Starts every node plus the traffic generator and monitor in the background (log: data/logs/fleet.log).
 fleet:
-	$(PYTHON) -m understudy.fleet.supervisor up
+	mkdir -p data/logs
+	$(PYTHON) -m understudy.fleet.runner --detach
+
+fleet-fg:
+	$(PYTHON) -m understudy.fleet.runner
+
+fleet-status:
+	$(PYTHON) -m understudy.fleet.nodectl status
 
 orchestrator:
 	$(PYTHON) -m understudy.orchestrator
@@ -54,3 +62,7 @@ report:
 
 test:
 	$(PYTHON) -m pytest -q
+
+# Everything except the tests that call the real API.
+test-fast:
+	$(PYTHON) -m pytest -q -m "not live"

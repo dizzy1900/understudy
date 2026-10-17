@@ -12,12 +12,15 @@ from understudy.fleet.referee import Referee
 
 pytestmark = pytest.mark.live
 
-if not os.environ.get(settings.API_KEY_ENV) or os.environ.get("SKIP_LIVE") == "1":
+# Captured at import so a test that edits the environment cannot swap the key out from under these nodes.
+REAL_KEY = os.environ.get(settings.API_KEY_ENV)
+if not REAL_KEY or os.environ.get("SKIP_LIVE") == "1":
     pytest.skip("needs CRUSOE_API_KEY (and SKIP_LIVE unset)", allow_module_level=True)
 
 
 @pytest.fixture(scope="module")
 def live_outcomes(tmp_path_factory):
+    os.environ[settings.API_KEY_ENV] = REAL_KEY
     model = settings.fleet_model_id()
     tmp = tmp_path_factory.mktemp("live-faults")
     sup = make_supervisor(tmp, 12, settings.CRUSOE_BASE_URL, model=model, prefix="live")

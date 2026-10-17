@@ -395,6 +395,8 @@ def _tail(path: Path, n: int) -> list[str]:
 
 def run_squatter(port: int, ttl_s: float) -> None:
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # A port the node just released can still be in TIME_WAIT; a listening socket on it still blocks a second bind.
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind(("127.0.0.1", port))
     sock.listen(8)
     sock.settimeout(1.0)

@@ -401,3 +401,28 @@ async def storm(
     if errors:
         raise FaultError(f"{len(errors)} of {len(jobs)} injections failed: {errors[0]!r}")
     return list(results)  # type: ignore[arg-type]
+
+
+async def pick_storm_nodes(
+    sup: Supervisor,
+    seed: int,
+    rows: list[int] | int | None = None,
+    count: int | None = None,
+    db: Database | None = None,
+) -> list[str]:
+    """Chooses 3-6 live nodes for a storm. rows limits the candidates to those rack rows; an int picks that
+    many random rows. Nodes that are down or already carry an uncleared fault are skipped."""
+    rng = seeded_rng("storm-nodes", seed)
+    faulty = {row["node_id"] for row in await db.active_faults()} if db is not None else set()
+    live = [
+        s for s in sup.specs.values()
+        if s.zone == "live" and s.id not in faulty and sup.status(s.id).state == "running"
+    ]
+    if isinstance(rows, int):
+        all_rows = sorted({s.row for s in live})
+        rows = rng.sample(all_rows, min(rows, len(all_rows)))
+    if rows:
+        live = [s for s in live if s.row in rows]
+    count = count if count is not None else rng.randint(3, 6)
+    count = max(1, min(count, len(live)))
+    return [s.id for s in rng.sample(live, count)]

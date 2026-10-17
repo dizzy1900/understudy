@@ -54,8 +54,8 @@ def test_fault_inputs_are_safe_and_effective():
 
 @pytest.fixture(scope="module")
 def offline_outcomes(tmp_path_factory):
-    os.environ["CRUSOE_API_KEY"] = "test-key"
     mp = pytest.MonkeyPatch()
+    mp.setenv("CRUSOE_API_KEY", "test-key")
     mp.setattr(faults, "STALE_ENDPOINTS", tuple(u for u in faults.STALE_ENDPOINTS if u.split("//")[1].split("/")[0].endswith(".invalid")))
     upstream = FakeUpstream().start()
     try:
