@@ -72,6 +72,8 @@ class Context:
     monitor: Any = None
     verifier: Any = None
     narrator: Any = None
+    librarian: Any = None
+    promoter: Any = None
     resolve: Callable[[str], tuple[str, str]] = lambda key: (key, settings.MODELS[key].id)
     gate: BudgetGate | None = None
     max_steps: int = 14

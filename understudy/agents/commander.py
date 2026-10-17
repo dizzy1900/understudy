@@ -9,6 +9,7 @@ import time
 from collections import deque
 from typing import Any
 
+from config import settings
 from understudy.agents import triage
 from understudy.agents.responder import Outcome, Responder, handoff_text
 from understudy.context import Context
@@ -245,6 +246,15 @@ class Commander:
         ctx.background(
             ctx.say(f"{node} is healthy again: {fault_class} fixed at the {rung} rung in {steps} steps for ${cost:.3f}.", "low", row["id"])
         )
+        ctx.background(self._learn(fault_class, outcome.quality))
+
+    async def _learn(self, fault_class: str, quality: int | None) -> None:
+        """Hands a closed incident to the librarian and the promoter's demotion check."""
+        ctx = self.ctx
+        if ctx.librarian is not None:
+            await ctx.librarian.after_verified(fault_class, quality)
+        if ctx.promoter is not None:
+            await ctx.promoter.after_incident(fault_class)
 
     async def _diagnosed_class(self, row: dict[str, Any], guess: str, claim: dict[str, str]) -> str:
         """The class the responder's own root cause points to, which is more reliable than the guess made from the
@@ -268,4 +278,6 @@ class Commander:
         if ctx.monitor is not None:
             ctx.monitor.hold(node, UNRESOLVED_HOLD_S)
         name = fault_class or row.get("fault_class") or "unknown fault"
+        if ctx.promoter is not None and name in settings.TRAINING_FAULT_CLASSES:
+            ctx.background(ctx.promoter.after_incident(name))
         await ctx.say(f"Could not fix {node} ({name}) at any rung: {reason}. It stays down until a person looks at it.", "high", row["id"], polish=False)

@@ -21,15 +21,22 @@ async def ledger_since(db: Database) -> float:
 
 async def compute(db: Database) -> Ledger:
     since = await ledger_since(db)
-    incidents_total = int(await db.scalar("SELECT COUNT(*) FROM incidents WHERE opened_at >= ?", (since,)) or 0)
-    verified = int(await db.scalar("SELECT COUNT(*) FROM incidents WHERE status = 'verified' AND opened_at >= ?", (since,)) or 0)
-    rejected = int(await db.scalar("SELECT COUNT(*) FROM verifications WHERE verdict = 'rejected' AND ts >= ?", (since,)) or 0)
+    incidents_total = int(await db.scalar("SELECT COUNT(*) FROM incidents WHERE zone = 'live' AND opened_at >= ?", (since,)) or 0)
+    verified = int(await db.scalar("SELECT COUNT(*) FROM incidents WHERE zone = 'live' AND status = 'verified' AND opened_at >= ?", (since,)) or 0)
+    rejected = int(
+        await db.scalar(
+            "SELECT COUNT(*) FROM verifications v JOIN incidents i ON i.id = v.incident_id"
+            " WHERE i.zone = 'live' AND v.verdict = 'rejected' AND v.ts >= ?",
+            (since,),
+        )
+        or 0
+    )
     promotions = int(await db.scalar("SELECT COUNT(*) FROM ladder_events WHERE direction = 'promote' AND ts >= ?", (since,)) or 0)
     demotions = int(await db.scalar("SELECT COUNT(*) FROM ladder_events WHERE direction = 'demote' AND ts >= ?", (since,)) or 0)
     cost_total = await db.total_cost()
     closed = await db.fetchone(
         "SELECT COUNT(*) AS n, COALESCE(SUM(cost_usd), 0) AS cost FROM incidents"
-        " WHERE status = 'verified' AND opened_at >= ?",
+        " WHERE zone = 'live' AND status = 'verified' AND opened_at >= ?",
         (since,),
     )
     per_incident = (closed["cost"] / closed["n"]) if closed and closed["n"] else 0.0
@@ -41,7 +48,7 @@ async def compute(db: Database) -> Ledger:
     by_rung = {name: RungStat() for name in RUNGS}
     rows = await db.fetchall(
         "SELECT rung, COUNT(*) AS n, COALESCE(SUM(cost_usd), 0) AS cost FROM incidents"
-        " WHERE status = 'verified' AND opened_at >= ? AND rung IS NOT NULL GROUP BY rung",
+        " WHERE zone = 'live' AND status = 'verified' AND opened_at >= ? AND rung IS NOT NULL GROUP BY rung",
         (since,),
     )
     for row in rows:

@@ -6,6 +6,7 @@ import asyncio
 import contextlib
 import logging
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -17,7 +18,9 @@ from config import settings
 from understudy import ledger, llm
 from understudy.agents.chaos import ChaosOps
 from understudy.agents.commander import Commander
+from understudy.agents.librarian import Librarian
 from understudy.agents.narrator import Narrator
+from understudy.agents.promoter import Promoter
 from understudy.agents.verifier import Verifier
 from understudy.context import BudgetGate, Context
 from understudy.db import Database
@@ -45,7 +48,6 @@ class Orchestrator:
         self.serve = serve
         self.host = host
         self.port = port
-        self.promoter = None
         self._tasks: list[asyncio.Task] = []
         self._server: uvicorn.Server | None = None
         self._server_task: asyncio.Task | None = None
@@ -71,6 +73,8 @@ class Orchestrator:
         self.ctx.gate.say = lambda text, priority: self.ctx.say(text, priority, polish=False)
         self.ctx.verifier = Verifier(self.ctx)
         self.ctx.narrator = Narrator(self.ctx)
+        self.librarian = self.ctx.librarian = Librarian(self.ctx)
+        self.promoter = self.ctx.promoter = Promoter(self.ctx)
 
         self.traffic = Traffic(self.state, self.sup.port_of, self.bus, refresh=self._mirror_proving_nodes)
         self.monitor = Monitor(self.state, referee, self.db, self.bus, self.sup)
@@ -82,6 +86,8 @@ class Orchestrator:
         await self.commander.start()
         await self.traffic.start()
         await self.monitor.start()
+        await self.promoter.start(loops=self.autopilot)
+        self._tasks.append(self.ctx.background(self.librarian.backfill()))
         self._tasks += [asyncio.create_task(self._ledger_loop()), asyncio.create_task(self._heartbeat_loop())]
         if self.autopilot:
             self.chaos.start_autopilot()
@@ -109,6 +115,8 @@ class Orchestrator:
             with contextlib.suppress(asyncio.CancelledError, Exception):
                 await asyncio.wait_for(self._server_task, 5.0)
         await self.chaos.stop()
+        await self.promoter.stop()
+        await self.librarian.stop()
         await self.commander.stop()
         await self.monitor.stop()
         await self.traffic.stop()
@@ -164,6 +172,9 @@ class Orchestrator:
             await self.db.execute(f"DELETE FROM {table}")
         await self.db.execute("UPDATE ladder SET rung = 'super', updated_at = ?", (time.time(),))
         await self.db.delete_setting("away_since")
+        await self.db.delete_setting("promoter_last_run")
+        await self.db.delete_setting("heldout_last_run")
+        shutil.rmtree(self.ctx.scripts_dir, ignore_errors=True)
         await self.db.set_setting("ledger_since", repr(time.time()))
         await self.sup.reset_all()
         for node_id in self.state.nodes:
