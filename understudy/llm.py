@@ -278,6 +278,10 @@ class LLMClient:
 
     # budget -------------------------------------------------------------------------
 
+    @property
+    def budget(self) -> float | None:
+        return self._budget
+
     async def spent(self) -> float:
         if self._db is not None and self._clock() - self._synced_at >= 2.0:
             self._spent = await self._db.total_cost()
