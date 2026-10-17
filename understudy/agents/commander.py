@@ -10,7 +10,7 @@ from collections import deque
 from typing import Any
 
 from config import settings
-from understudy.agents import triage
+from understudy.agents import narrator, triage
 from understudy.agents.responder import Outcome, Responder, handoff_text
 from understudy.context import Context
 from understudy.events import Escalation, IncidentClosed
@@ -62,7 +62,7 @@ class Commander:
         open_now = await self.ctx.db.open_incidents()
         if not open_now:
             return 0
-        await self.ctx.say(f"Resuming {len(open_now)} open incidents.", "high", polish=False)
+        await self.ctx.say(narrator.resume_line(len(open_now)), "high", polish=False)
         for row in open_now:
             self.ctx.state.mark_repairing(row["node_id"], f"incident {row['id']} resumed")
             self.handle(row["id"], resumed=True)
@@ -160,6 +160,9 @@ class Commander:
                 await self._unresolved(row, outcome.reason, fault_class, rung)
                 return
             ctx.bus.publish(Escalation(incident_id=incident_id, from_rung=rung, to_rung=nxt, reason=outcome.reason[:200]))  # type: ignore[arg-type]
+            await ctx.say(narrator.escalation_line(node, rung, nxt, outcome.reason), "high", incident_id)
+            if ctx.verifier is not None:
+                ctx.verifier.forget(incident_id)
             escalations += 1
             await db.update_incident(incident_id, escalations=escalations)
             handoff = handoff_text(
@@ -206,7 +209,7 @@ class Commander:
         self._last_storm = now
         count = len(self._opened)
         self._thought(f"{count} incidents in {STORM_WINDOW_S:.0f}s. Triaging each one and working them in parallel.")
-        self.ctx.background(self.ctx.say(f"Storm: {count} nodes failed within {STORM_WINDOW_S:.0f} seconds. Working them in parallel.", "high"))
+        await self.ctx.say(narrator.storm_line(count, STORM_WINDOW_S), "high")
 
     async def _watchdog(self, row: dict[str, Any], rung: str, outcome: Outcome) -> None:
         ctx = self.ctx
@@ -243,9 +246,7 @@ class Commander:
                 steps=steps, cost_usd=round(cost, 6), seconds=round(now - row["opened_at"], 1),
             )
         )
-        ctx.background(
-            ctx.say(f"{node} is healthy again: {fault_class} fixed at the {rung} rung in {steps} steps for ${cost:.3f}.", "low", row["id"])
-        )
+        ctx.background(ctx.say(narrator.healthy_line(node, fault_class, rung, steps, cost), "low", row["id"]))
         ctx.background(self._learn(fault_class, outcome.quality))
 
     async def _learn(self, fault_class: str, quality: int | None) -> None:
@@ -280,4 +281,4 @@ class Commander:
         name = fault_class or row.get("fault_class") or "unknown fault"
         if ctx.promoter is not None and name in settings.TRAINING_FAULT_CLASSES:
             ctx.background(ctx.promoter.after_incident(name))
-        await ctx.say(f"Could not fix {node} ({name}) at any rung: {reason}. It stays down until a person looks at it.", "high", row["id"], polish=False)
+        await ctx.say(narrator.unresolved_line(node, name, reason), "high", row["id"], polish=False)

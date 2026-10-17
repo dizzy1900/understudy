@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from understudy import llm
+from understudy.agents import narrator
 from understudy.context import Context
 from understudy.events import Verification
 from understudy.fleet.referee import Verdict
@@ -14,6 +15,8 @@ from understudy.fleet.referee import Verdict
 log = logging.getLogger("understudy.verifier")
 
 GRADE_TIMEOUT_S = 60.0
+# A responder gets its first rejected claim back; the second one ends its run and the escalation line covers it.
+REOPEN_LIMIT = 1
 
 GRADER_PROMPT = (
     "You review a fix an on-call engineer made to an inference node. The node already passed an independent "
@@ -57,6 +60,11 @@ def render_trajectory(actions: list[dict[str, Any]], limit: int = 20) -> str:
 class Verifier:
     def __init__(self, ctx: Context):
         self.ctx = ctx
+        self._rejections: dict[int, int] = {}
+
+    def forget(self, incident_id: int) -> None:
+        """Starts the rejection count over, for a new responder on the same incident."""
+        self._rejections.pop(incident_id, None)
 
     async def review(
         self, incident: dict[str, Any], claim: dict[str, str], responder_id: str, grade: bool = True
@@ -85,9 +93,23 @@ class Verifier:
                     probes=[p.to_event() for p in verdict.probes], quality=review.quality, note=note,
                 )
             )
+            await self._narrate(incident, review, grade)
             return review
         finally:
             ctx.done(agent)
+
+    async def _narrate(self, incident: dict[str, Any], review: Review, grade: bool) -> None:
+        incident_id = incident["id"]
+        if review.verified:
+            self._rejections.pop(incident_id, None)
+            return
+        count = self._rejections[incident_id] = self._rejections.get(incident_id, 0) + 1
+        # Proving-ground trials are not live incidents, and a compiled script is escalated without a retry.
+        if incident.get("zone") == "proving" or not grade or count > REOPEN_LIMIT:
+            return
+        failed = next((p for p in review.verdict.probes if not p.ok), None)
+        line = narrator.rejection_line(incident["node_id"], failed.name if failed else "")
+        await self.ctx.say(line, "high", incident_id)
 
     async def _grade(self, incident: dict[str, Any], claim: dict[str, str], agent: str) -> tuple[int | None, str]:
         ctx = self.ctx

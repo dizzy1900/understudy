@@ -118,6 +118,7 @@ class Orchestrator:
         await self.promoter.stop()
         await self.librarian.stop()
         await self.commander.stop()
+        await self.ctx.narrator.close()
         await self.monitor.stop()
         await self.traffic.stop()
         for task in self._tasks:

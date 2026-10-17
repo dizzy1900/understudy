@@ -173,7 +173,7 @@ async def promoter_context(tmp_path, chat, referee=None, **kwargs):
 
     said = []
 
-    async def say(text, priority="low", incident_id=None, polish=True):
+    async def say(text, priority="low", incident_id=None, polish=True, force=False):
         said.append((priority, text))
         return text
 

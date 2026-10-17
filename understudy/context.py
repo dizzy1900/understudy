@@ -23,6 +23,14 @@ ChatFn = Callable[..., Awaitable[llm.LLMResult]]
 SayFn = Callable[..., Awaitable[Any]]
 
 
+def budget_paused_line(spent: float, limit: float) -> str:
+    return f"Budget cap reached: ${spent:.2f} of ${limit:.2f} spent. LLM work is paused."
+
+
+def budget_resumed_line() -> str:
+    return "Budget is available again. LLM work resumes."
+
+
 class BudgetGate:
     """Holds LLM work while spend is at or over the cap, and says so once."""
 
@@ -52,13 +60,13 @@ class BudgetGate:
             self.paused = True
             log.warning("budget cap reached: $%.2f of $%.2f", spent, self.limit)
             if self.say is not None:
-                await self.say(f"Budget cap reached: ${spent:.2f} of ${self.limit:.2f} spent. LLM work is paused.", "high")
+                await self.say(budget_paused_line(spent, self.limit), "high")
         while await self._spent() >= self.limit:
             await asyncio.sleep(self.poll_s)
         if self.paused:
             self.paused = False
             if self.say is not None:
-                await self.say("Budget is available again. LLM work resumes.", "high")
+                await self.say(budget_resumed_line(), "high")
 
 
 @dataclass
@@ -110,10 +118,13 @@ class Context:
         else:
             await asyncio.sleep(1.0)
 
-    async def say(self, facts: str, priority: str = "low", incident_id: int | None = None, polish: bool = True) -> str:
+    async def say(
+        self, facts: str, priority: str = "low", incident_id: int | None = None, polish: bool = True, force: bool = False
+    ) -> str:
+        """Queues one narration line and returns the facts. force publishes at once, past the rate limit."""
         if self.narrator is None:
             return facts
-        return await self.narrator.say(facts, priority, incident_id=incident_id, polish=polish)
+        return await self.narrator.say(facts, priority, incident_id=incident_id, polish=polish, force=force)
 
     def background(self, coro: Awaitable[Any]) -> "asyncio.Task":
         task = asyncio.ensure_future(coro)
