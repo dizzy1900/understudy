@@ -31,8 +31,8 @@ export default function Desk() {
   const ringB = useRef<THREE.Mesh>(null);
   const pulse = useRef({ at: -10, thoughtAt: 0, agentId: "" });
 
-  const body = useOwned(() => new THREE.MeshStandardMaterial({ color: "#151a22", metalness: 0.8, roughness: 0.35 }));
-  const top = useOwned(() => new THREE.MeshStandardMaterial({ color: "#0c1016", metalness: 0.9, roughness: 0.2 }));
+  const body = useOwned(() => new THREE.MeshStandardMaterial({ color: "#0e0e0e", metalness: 0.2, roughness: 0.85 }));
+  const top = useOwned(() => new THREE.MeshStandardMaterial({ color: "#050505", metalness: 0.2, roughness: 0.8 }));
   const edge = useOwned(
     () => new THREE.MeshBasicMaterial({ color: new THREE.Color(GOLD).multiplyScalar(2.3), toneMapped: false }),
   );

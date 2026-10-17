@@ -5,9 +5,8 @@ import { toggleFullscreen } from "./actions";
 function Mark() {
   return (
     <svg className="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
-      <rect width="32" height="32" rx="8" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.14)" />
-      <circle cx="16" cy="16" r="7" fill="none" stroke="#3ee6ff" strokeWidth="2.6" />
-      <circle cx="16" cy="16" r="2.2" fill="#3ee6ff" />
+      <rect x="0.5" y="0.5" width="31" height="31" fill="none" stroke="#2a2a2a" />
+      <rect x="10" y="10" width="12" height="12" fill="#CEEB13" />
     </svg>
   );
 }

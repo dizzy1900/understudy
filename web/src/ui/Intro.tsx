@@ -113,7 +113,7 @@ export default function Intro() {
         <div className="intro-actions">
           <span className="hint">Click any ladder pill to read the skill card behind it.</span>
           <button type="button" className="btn btn-primary" onClick={dismiss} autoFocus>
-            Enter the control room
+            Enter the control room {"\u2192"}
           </button>
         </div>
       </aside>

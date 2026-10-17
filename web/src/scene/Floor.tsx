@@ -10,8 +10,8 @@ const WALL_Z = -11.4;
 export function Lights() {
   return (
     <>
-      <ambientLight intensity={0.5} color="#b8bcc4" />
-      <hemisphereLight args={["#6f8fb8", "#07080B", 0.55]} />
+      <ambientLight intensity={0.5} color="#ffffff" />
+      <hemisphereLight args={["#ffffff", "#000000", 0.35]} />
       <directionalLight position={[-6, 14, 16]} intensity={1.7} color="#f2f2f2" />
       <pointLight position={[0, 4.8, -9]} intensity={0} distance={22} color={COLORS.healthy} decay={2} />
       <pointLight position={[DESK_POSITION[0], 3.4, DESK_POSITION[2] - 0.5]} intensity={0} distance={12} color="#F5C451" decay={2} />
@@ -30,7 +30,7 @@ export function Floor() {
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-4, 0, -2]}>
         <planeGeometry args={[110, 80]} />
         <MeshReflectorMaterial
-          color="#0b0e14"
+          color="#000000"
           metalness={0.6}
           roughness={0.75}
           resolution={512}
@@ -46,10 +46,10 @@ export function Floor() {
         args={[110, 80]}
         cellSize={1}
         cellThickness={0.6}
-        cellColor="#16303d"
+        cellColor="#141414"
         sectionSize={5}
         sectionThickness={1.1}
-        sectionColor="#1f5266"
+        sectionColor="#262626"
         fadeDistance={48}
         fadeStrength={1.6}
         infiniteGrid
@@ -75,7 +75,7 @@ export function FarWall() {
     <group>
       <mesh position={[-4, 6, WALL_Z]}>
         <planeGeometry args={[70, 22]} />
-        <meshStandardMaterial color="#0a0d13" metalness={0.5} roughness={0.7} />
+        <meshStandardMaterial color="#050505" metalness={0.5} roughness={0.7} />
       </mesh>
       <mesh position={[COUNTER_POSITION[0], COUNTER_POSITION[1], WALL_Z + 0.05]} material={glow}>
         <planeGeometry args={[22, 9]} />

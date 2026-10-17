@@ -2,26 +2,28 @@
 @import "@fontsource-variable/jetbrains-mono";
 
 :root {
-  --bg: #0b0b0c;
-  --healthy: #6f8f93;
-  --incident: #e5484d;
+  /* Crusoe-style tokens: pure black, white, one chartreuse accent, hairline grid. */
+  --bg: #000000;
+  --healthy: #8c8c8c;
+  --incident: #ff4d3d;
   --repairing: #f5a524;
-  --accent: #5b8def;
-  --verified: #46a758;
-  --super: #d4a72c;
-  --lightning: #5b8def;
-  --script: #e6e6e6;
-  --ultra: #9a8ccf;
-  --nano: #5fb3a8;
-  --text: #ededef;
-  --dim: #8b8b90;
-  --panel: #141416;
-  --panel-border: #ffffff14;
+  --accent: #CEEB13;
+  --verified: #CEEB13;
+  --super: #ffffff;
+  --lightning: #CEEB13;
+  --script: #8c8c8c;
+  --ultra: #bdbdbd;
+  --nano: #6e6e6e;
+  --text: #ffffff;
+  --dim: #8c8c8c;
+  --panel: #000000;
+  --panel-border: #2a2a2a;
   --font-ui: "Inter Variable", Inter, system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
-  --hairline: #ffffff14;
-  --surface: #1a1a1d;
-  --surface-hover: #202023;
+  --hairline: #2a2a2a;
+  --surface: #000000;
+  --surface-hover: #0f0f0f;
+  --radius: 0;
 }
 
 * {
@@ -39,7 +41,9 @@ body,
   font-family: var(--font-ui);
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 button {

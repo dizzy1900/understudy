@@ -37,8 +37,8 @@ let faceMat: THREE.MeshStandardMaterial | null = null;
 let beamMat: THREE.MeshBasicMaterial | null = null;
 
 function sharedMaterials() {
-  bodyMat ??= keep(new THREE.MeshStandardMaterial({ color: "#1c222c", metalness: 0.75, roughness: 0.4 }));
-  plinthMat ??= keep(new THREE.MeshStandardMaterial({ color: "#0d1015", metalness: 0.6, roughness: 0.5 }));
+  bodyMat ??= keep(new THREE.MeshStandardMaterial({ color: "#0e0e0e", metalness: 0.2, roughness: 0.85 }));
+  plinthMat ??= keep(new THREE.MeshStandardMaterial({ color: "#050505", metalness: 0.1, roughness: 0.9 }));
   faceMat ??= keep(
     new THREE.MeshStandardMaterial({
       map: rackFaceTex(),

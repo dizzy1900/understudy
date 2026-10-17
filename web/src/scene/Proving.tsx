@@ -26,7 +26,7 @@ export default function Proving() {
   const glass = useOwned(
     () =>
       new THREE.MeshBasicMaterial({
-        color: "#7fd8ee",
+        color: "#3a3a3a",
         transparent: true,
         opacity: 0.055,
         depthWrite: false,
@@ -49,7 +49,7 @@ export default function Proving() {
         toneMapped: false,
       }),
   );
-  const slab = useOwned(() => new THREE.MeshStandardMaterial({ color: "#0a0d12", metalness: 0.7, roughness: 0.35 }));
+  const slab = useOwned(() => new THREE.MeshStandardMaterial({ color: "#050505", metalness: 0.1, roughness: 0.9 }));
 
   useFrame((_, dt) => {
     const s = useStream.getState();

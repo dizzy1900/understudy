@@ -56,7 +56,7 @@ export default function Controls() {
         onClick={() => void sendStorm()}
       >
         {sent && <span key={stormSentAt} className="storm-flash" />}
-        <span>{sent ? "Storm sent" : "Storm"}</span>
+        <span>{sent ? "Storm sent" : "Storm \u2192"}</span>
         <kbd>S</kbd>
       </button>
       <div className="control-grid">
