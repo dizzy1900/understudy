@@ -28,19 +28,42 @@ def free_port() -> int:
         return sock.getsockname()[1]
 
 
-class FakeUpstream:
+class ThreadedServer:
+    def __init__(self, app: FastAPI, port: int | None = None):
+        self.app = app
+        self.port = port or free_port()
+        self._server: uvicorn.Server | None = None
+        self._thread: threading.Thread | None = None
+
+    def start(self):
+        config = uvicorn.Config(self.app, host="127.0.0.1", port=self.port, log_level="error")
+        self._server = uvicorn.Server(config)
+        self._thread = threading.Thread(target=self._server.run, daemon=True)
+        self._thread.start()
+        deadline = time.time() + 10
+        while not self._server.started:
+            if time.time() > deadline:
+                raise RuntimeError("server did not start")
+            time.sleep(0.02)
+        return self
+
+    def stop(self) -> None:
+        if self._server is not None:
+            self._server.should_exit = True
+        if self._thread is not None:
+            self._thread.join(timeout=5)
+
+
+class FakeUpstream(ThreadedServer):
     """Mimics the parts of the Crusoe API the fleet depends on, including its error shapes."""
 
     def __init__(self, model: str = TEST_MODEL, delay: float = 0.0):
+        super().__init__(FastAPI())
         self.model = model
         self.delay = delay
         self.requests: list[dict[str, Any]] = []
         self.in_flight = 0
         self.max_in_flight = 0
-        self.port = free_port()
-        self.app = FastAPI()
-        self._server: uvicorn.Server | None = None
-        self._thread: threading.Thread | None = None
         self.app.post("/v1/chat/completions")(self._chat)
 
     @property
@@ -89,24 +112,6 @@ class FakeUpstream:
                 "usage": {"prompt_tokens": 10, "completion_tokens": 2, "total_tokens": 12},
             }
         )
-
-    def start(self) -> "FakeUpstream":
-        config = uvicorn.Config(self.app, host="127.0.0.1", port=self.port, log_level="error")
-        self._server = uvicorn.Server(config)
-        self._thread = threading.Thread(target=self._server.run, daemon=True)
-        self._thread.start()
-        deadline = time.time() + 10
-        while not self._server.started:
-            if time.time() > deadline:
-                raise RuntimeError("fake upstream did not start")
-            time.sleep(0.02)
-        return self
-
-    def stop(self) -> None:
-        if self._server is not None:
-            self._server.should_exit = True
-        if self._thread is not None:
-            self._thread.join(timeout=5)
 
 
 def make_supervisor(tmp: Path, count: int, upstream_url: str, model: str = TEST_MODEL, prefix: str = "t") -> Supervisor:
