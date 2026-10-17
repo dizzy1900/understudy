@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import fixture from "./__fixtures__/real-events.json";
-import { resetStream, tokensServed, useStream } from "./store";
+import { DOWN_HOLD_MS, resetStream, tokensServed, useStream } from "./store";
 import type { StreamEvent } from "./types";
 
 const events = fixture as unknown as StreamEvent[];
@@ -25,11 +25,43 @@ describe("real event stream", () => {
 
   it("applies node_status transitions to known nodes", () => {
     feed(events);
+    useStream.getState().sweep(Date.now() + DOWN_HOLD_MS + 1);
     const statuses = events.filter((e) => e.type === "node_status");
     const last = statuses[statuses.length - 1];
     if (last.type === "node_status") {
       expect(useStream.getState().nodes[last.data.node_id].status).toBe(last.data.status);
     }
+  });
+
+  it("keeps a down node red for a moment when repairing follows in the same instant", () => {
+    feed(events);
+    const ts = events[events.length - 1].ts + 1;
+    const node = "r1-01";
+    const send = (status: string) =>
+      useStream.getState().handle({ type: "node_status", ts: ts + Math.random(), data: { node_id: node, status } } as StreamEvent);
+    send("down");
+    send("repairing");
+    expect(useStream.getState().nodes[node].status).toBe("down");
+
+    useStream.getState().sweep(Date.now() + 1000);
+    expect(useStream.getState().nodes[node].status).toBe("down");
+
+    useStream.getState().sweep(Date.now() + DOWN_HOLD_MS + 1);
+    expect(useStream.getState().nodes[node].status).toBe("repairing");
+    expect(useStream.getState().nodeHolds[node]).toBeUndefined();
+  });
+
+  it("shows the latest status once the hold ends, not the first one that arrived", () => {
+    feed(events);
+    const ts = events[events.length - 1].ts + 1;
+    const node = "r2-02";
+    const send = (status: string, n: number) =>
+      useStream.getState().handle({ type: "node_status", ts: ts + n, data: { node_id: node, status } } as StreamEvent);
+    send("down", 0);
+    send("repairing", 1);
+    send("healthy", 2);
+    useStream.getState().sweep(Date.now() + DOWN_HOLD_MS + 1);
+    expect(useStream.getState().nodes[node].status).toBe("healthy");
   });
 
   it("keeps the commander even though its spawn happened before the page opened", () => {

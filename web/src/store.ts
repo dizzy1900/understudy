@@ -83,6 +83,9 @@ export interface SkillNote {
 export const CAPTION_TTL_MS = 6000;
 export const STAMP_TTL_MS = 7000;
 export const AGENT_LINGER_MS = 3500;
+/** The backend reports a node as down, opens its incident and marks it repairing in the same instant, so the red
+ * state would never be on screen. Down stays visible for this long before the next status shows. */
+export const DOWN_HOLD_MS = 3500;
 const MAX_CAPTIONS = 4;
 const MAX_MOVES = 30;
 const SEEN_LIMIT = 4000;
@@ -106,6 +109,8 @@ export interface StreamState {
   lastEventAt: number;
   nodes: Record<string, NodeInfo>;
   nodeOrder: string[];
+  /** Nodes whose red state is still being shown, with the status that arrived during the hold. */
+  nodeHolds: Record<string, { until: number; next: NodeState | null }>;
   ledger: Ledger | null;
   /** Tokens served since the ledger last reported, so the counter can run between ledger events. */
   tokensSinceLedger: number;
@@ -194,6 +199,7 @@ export const useStream = create<StreamState>((set, get) => ({
   lastEventAt: 0,
   nodes: {},
   nodeOrder: [],
+  nodeHolds: {},
   ledger: null,
   tokensSinceLedger: 0,
   ladder: emptyLadder(),
@@ -260,8 +266,22 @@ export const useStream = create<StreamState>((set, get) => ({
         delete stamps[stamp.node_id];
       }
     }
+    let nodes = state.nodes;
+    let nodeHolds = state.nodeHolds;
+    for (const [id, hold] of Object.entries(state.nodeHolds)) {
+      if (now < hold.until) continue;
+      if (nodeHolds === state.nodeHolds) nodeHolds = { ...nodeHolds };
+      delete nodeHolds[id];
+      const node = nodes[id];
+      if (node && hold.next && hold.next !== node.status) {
+        if (nodes === state.nodes) nodes = { ...nodes };
+        nodes[id] = { ...node, status: hold.next };
+      }
+    }
     const captions = state.captions.filter((c) => now - c.at < CAPTION_TTL_MS + 1500);
     const patch: Partial<StreamState> = {};
+    if (nodes !== state.nodes) patch.nodes = nodes;
+    if (nodeHolds !== state.nodeHolds) patch.nodeHolds = nodeHolds;
     if (agents !== state.agents) patch.agents = agents;
     if (stamps !== state.stamps) patch.stamps = stamps;
     if (captions.length !== state.captions.length) patch.captions = captions;
@@ -274,17 +294,35 @@ function reduce(state: StreamState, event: StreamEvent, now: number): Partial<St
   switch (event.type) {
     case "fleet_snapshot": {
       const nodes: Record<string, NodeInfo> = {};
+      const holds = { ...state.nodeHolds };
       const order: string[] = [];
       for (const node of event.data.nodes) {
-        nodes[node.id] = node;
+        const hold = holds[node.id];
+        if (hold && now < hold.until && node.status !== "down") {
+          nodes[node.id] = { ...node, status: "down" };
+          holds[node.id] = { ...hold, next: node.status };
+        } else {
+          nodes[node.id] = node;
+          delete holds[node.id];
+        }
         order.push(node.id);
       }
-      return { ...base, nodes, nodeOrder: order };
+      return { ...base, nodes, nodeOrder: order, nodeHolds: holds };
     }
     case "node_status": {
-      const node = state.nodes[event.data.node_id];
-      if (!node || node.status === event.data.status) return base;
-      return { ...base, nodes: { ...state.nodes, [node.id]: { ...node, status: event.data.status as NodeState } } };
+      const id = event.data.node_id;
+      const node = state.nodes[id];
+      if (!node) return base;
+      const status = event.data.status as NodeState;
+      const hold = state.nodeHolds[id];
+      if (hold && now < hold.until) {
+        return { ...base, nodeHolds: { ...state.nodeHolds, [id]: { ...hold, next: status === "down" ? null : status } } };
+      }
+      if (node.status === status) return base;
+      const nodeHolds = { ...state.nodeHolds };
+      delete nodeHolds[id];
+      if (status === "down") nodeHolds[id] = { until: now + DOWN_HOLD_MS, next: null };
+      return { ...base, nodes: { ...state.nodes, [id]: { ...node, status } }, nodeHolds };
     }
     case "tokens":
       return { ...base, tokensSinceLedger: state.tokensSinceLedger + event.data.tokens };
