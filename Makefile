@@ -2,7 +2,7 @@ PY ?= python3.11
 VENV := .venv
 PYTHON := $(VENV)/bin/python
 
-.PHONY: install check-models fleet fleet-fg fleet-status orchestrator server autopilot stop mock-events \
+.PHONY: install check-models fleet fleet-fg fleet-status orchestrator server autopilot autopilot-fg stop mock-events \
 	web web-build report test test-fast kill-orchestrator
 
 install:
@@ -25,18 +25,25 @@ fleet-fg:
 fleet-status:
 	$(PYTHON) -m understudy.fleet.nodectl status
 
+# Nodes, traffic, monitor, agents and the UI API in one process, in the foreground. No scheduled faults.
 orchestrator:
 	$(PYTHON) -m understudy.orchestrator
 
-server:
-	$(PYTHON) -m uvicorn understudy.server:app --host 127.0.0.1 --port 8000
+server: orchestrator
 
+# The same, in the background (log: data/logs/orchestrator.log), with a random training fault every 20-40s and a
+# storm about every 5 minutes. Nodes keep running if the orchestrator dies; run this again to resume.
 autopilot:
+	mkdir -p data/logs
+	$(PYTHON) -m understudy.orchestrator --autopilot --detach
+
+autopilot-fg:
 	$(PYTHON) -m understudy.orchestrator --autopilot
 
 # The bracketed first letter keeps pkill from matching this recipe's own shell.
 stop:
 	pkill -f '[u]nderstudy\.orchestrator' || true
+	sleep 2
 	pkill -f '[u]vicorn understudy\.server' || true
 	pkill -f '[u]nderstudy\.fleet' || true
 	pkill -f '[s]cripts\.mock_events' || true
