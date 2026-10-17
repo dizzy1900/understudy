@@ -2,7 +2,7 @@ import type { AgentRung, NodeState, Rung } from "./types";
 
 export const COLORS = {
   bg: "#0b0b0c",
-  healthy: "#6f8f93",
+  healthy: "#3f4248",
   incident: "#e5484d",
   repairing: "#f5a524",
   accent: "#5b8def",

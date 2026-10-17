@@ -13,8 +13,8 @@ export function Lights() {
       <ambientLight intensity={0.5} color="#b8bcc4" />
       <hemisphereLight args={["#6f8fb8", "#07080B", 0.55]} />
       <directionalLight position={[-6, 14, 16]} intensity={1.7} color="#f2f2f2" />
-      <pointLight position={[0, 4.8, -9]} intensity={12} distance={22} color={COLORS.healthy} decay={2} />
-      <pointLight position={[DESK_POSITION[0], 3.4, DESK_POSITION[2] - 0.5]} intensity={10} distance={12} color="#F5C451" decay={2} />
+      <pointLight position={[0, 4.8, -9]} intensity={0} distance={22} color={COLORS.healthy} decay={2} />
+      <pointLight position={[DESK_POSITION[0], 3.4, DESK_POSITION[2] - 0.5]} intensity={0} distance={12} color="#F5C451" decay={2} />
       <Environment resolution={64} frames={1} environmentIntensity={0.55}>
         <Lightformer form="rect" intensity={2.2} position={[0, 9, 4]} rotation-x={Math.PI / 2} scale={[24, 6, 1]} color="#ffffff" />
         <Lightformer form="rect" intensity={1.4} position={[-12, 4, 0]} rotation-y={Math.PI / 2} scale={[20, 5, 1]} color="#ffffff" />

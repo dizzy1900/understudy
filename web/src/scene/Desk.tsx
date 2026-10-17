@@ -51,7 +51,7 @@ export default function Desk() {
         map: glowTex(),
         color: new THREE.Color(GOLD).multiplyScalar(1.6),
         transparent: true,
-        opacity: 0.55,
+        opacity: 0.18,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         toneMapped: false,
@@ -59,7 +59,7 @@ export default function Desk() {
   );
   const ringMat = useOwned(() => additive(GOLD, null, 0.7, 1.8));
   const shaft = useOwned(() => additive(GOLD, columnTex(), 0.22, 1.4));
-  const floorGlow = useOwned(() => additive(GOLD, glowTex(), 0.28, 1.2));
+  const floorGlow = useOwned(() => additive(GOLD, glowTex(), 0.07, 1));
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;

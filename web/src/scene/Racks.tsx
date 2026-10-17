@@ -124,7 +124,7 @@ function Rack({ id }: { id: string }) {
         map: glowTex(),
         color: COLORS.healthy,
         transparent: true,
-        opacity: 0.2,
+        opacity: 0.07,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         toneMapped: false,

@@ -7,15 +7,15 @@ import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { cancelSweep, endSweep, sweep, sweepPose } from "./sweep";
 
 export const CAMERA_TARGET: [number, number, number] = [-4.6, 1.0, -1.6];
-export const CAMERA_POSITION: [number, number, number] = [-4.6, 18.4, 25.2];
+export const CAMERA_POSITION: [number, number, number] = [-4.6, 20.5, 28.5];
 
 const DRIFT_LIMIT = (12 * Math.PI) / 180;
 const DRIFT_SPEED = 0.09;
 const IDLE_RESUME_MS = 8000;
 /** Fraction of the frame width kept free on the right for the overlay panels. */
-const RIGHT_MARGIN = 0.25;
+const RIGHT_MARGIN = 0;
 /** Positive moves the scene up in the frame, as a fraction of the frame height. */
-const LIFT = -0.03;
+const LIFT = 0.02;
 
 export default function CameraRig() {
   const controls = useRef<OrbitControlsImpl>(null);

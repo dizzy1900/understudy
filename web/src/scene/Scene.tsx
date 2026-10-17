@@ -1,5 +1,5 @@
 import { Canvas } from "@react-three/fiber";
-import { Bloom, EffectComposer, Vignette } from "@react-three/postprocessing";
+import { EffectComposer, Vignette } from "@react-three/postprocessing";
 import { useEffect } from "react";
 import * as THREE from "three";
 
@@ -8,7 +8,6 @@ import CameraRig, { CAMERA_POSITION } from "./CameraRig";
 import { FarWall, Floor, Lights } from "./Floor";
 import Desk from "./Desk";
 import Drones from "./Drones";
-import { Lanes } from "./Particles";
 import Proving from "./Proving";
 import Racks from "./Racks";
 import Stamps from "./Stamps";
@@ -32,7 +31,6 @@ export default function Scene() {
         <Floor />
         <FarWall />
         <Racks />
-        <Lanes />
         <Proving />
         <Desk />
         <Drones />
@@ -40,7 +38,6 @@ export default function Scene() {
         <BubbleLayout />
         <CameraRig />
         <EffectComposer multisampling={0}>
-          <Bloom mipmapBlur intensity={0.25} luminanceThreshold={0.97} luminanceSmoothing={0.1} radius={0.4} />
           <Vignette eskil={false} offset={0.3} darkness={0.45} />
         </EffectComposer>
       </Canvas>

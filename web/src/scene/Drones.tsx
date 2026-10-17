@@ -96,7 +96,7 @@ function Drone({ id, role, rung, nodeId, slot, count }: DroneProps) {
         map: glowTex(),
         color: new THREE.Color(color).multiplyScalar(rung === "script" ? 0.8 : 1.3),
         transparent: true,
-        opacity: 0.5,
+        opacity: 0.16,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         toneMapped: false,
