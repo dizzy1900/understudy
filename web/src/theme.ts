@@ -1,22 +1,22 @@
 import type { AgentRung, NodeState, Rung } from "./types";
 
 export const COLORS = {
-  bg: "#07080B",
-  healthy: "#3EE6FF",
-  incident: "#FF3B3B",
-  repairing: "#FFB020",
-  accent: "#FF7A1A",
-  verified: "#38E08C",
-  text: "#E8ECF4",
-  dim: "#8791A3",
+  bg: "#0b0b0c",
+  healthy: "#6f8f93",
+  incident: "#e5484d",
+  repairing: "#f5a524",
+  accent: "#5b8def",
+  verified: "#46a758",
+  text: "#ededef",
+  dim: "#8b8b90",
 } as const;
 
 export const RUNG_COLORS: Record<AgentRung, string> = {
-  super: "#F5C451",
-  lightning: "#4C8DFF",
-  script: "#F4F6FA",
-  ultra: "#A78BFA",
-  nano: "#2DD4BF",
+  super: "#d4a72c",
+  lightning: "#5b8def",
+  script: "#e6e6e6",
+  ultra: "#9a8ccf",
+  nano: "#5fb3a8",
 };
 
 export const STATUS_COLORS: Record<NodeState, string> = {

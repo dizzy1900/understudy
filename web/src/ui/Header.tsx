@@ -33,7 +33,7 @@ export default function Header() {
     <div className="hdr">
       <div className="brand">
         <Mark />
-        <h1 className="wordmark">UNDERSTUDY</h1>
+        <h1 className="wordmark">Understudy</h1>
         <span className="badge" title="Nemotron models served on Crusoe Managed Inference">
           <i />
           Nemotron on Crusoe

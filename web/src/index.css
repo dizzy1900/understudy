@@ -2,23 +2,26 @@
 @import "@fontsource-variable/jetbrains-mono";
 
 :root {
-  --bg: #07080b;
-  --healthy: #3ee6ff;
-  --incident: #ff3b3b;
-  --repairing: #ffb020;
-  --accent: #ff7a1a;
-  --verified: #38e08c;
-  --super: #f5c451;
-  --lightning: #4c8dff;
-  --script: #f4f6fa;
-  --ultra: #a78bfa;
-  --nano: #2dd4bf;
-  --text: #e8ecf4;
-  --dim: #8791a3;
-  --panel: rgba(10, 12, 18, 0.62);
-  --panel-border: rgba(255, 255, 255, 0.09);
+  --bg: #0b0b0c;
+  --healthy: #6f8f93;
+  --incident: #e5484d;
+  --repairing: #f5a524;
+  --accent: #5b8def;
+  --verified: #46a758;
+  --super: #d4a72c;
+  --lightning: #5b8def;
+  --script: #e6e6e6;
+  --ultra: #9a8ccf;
+  --nano: #5fb3a8;
+  --text: #ededef;
+  --dim: #8b8b90;
+  --panel: #141416;
+  --panel-border: #ffffff14;
   --font-ui: "Inter Variable", Inter, system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+  --hairline: #ffffff14;
+  --surface: #1a1a1d;
+  --surface-hover: #202023;
 }
 
 * {
@@ -35,6 +38,8 @@ body,
   color: var(--text);
   font-family: var(--font-ui);
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.01em;
 }
 
 button {

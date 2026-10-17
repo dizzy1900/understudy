@@ -44,7 +44,7 @@ export default function Scene() {
         <BubbleLayout />
         <CameraRig />
         <EffectComposer multisampling={0}>
-          <Bloom mipmapBlur intensity={0.8} luminanceThreshold={0.85} luminanceSmoothing={0.25} radius={0.75} />
+          <Bloom mipmapBlur intensity={0.25} luminanceThreshold={0.97} luminanceSmoothing={0.1} radius={0.4} />
           <Vignette eskil={false} offset={0.25} darkness={0.7} />
         </EffectComposer>
       </Canvas>
