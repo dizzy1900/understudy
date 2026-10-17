@@ -115,7 +115,8 @@ class Quota:
 
     def check(self, force: bool = False, quiet: bool = False) -> bool:
         now = time.monotonic()
-        if force or now - self._checked >= QUOTA_CACHE_S:
+        # While over quota every request rescans, so freeing space takes effect on the next request.
+        if force or self.over or now - self._checked >= QUOTA_CACHE_S:
             self._checked = now
             self.used = data_bytes(self.data_dir)
             self.over = self.used > self.limit

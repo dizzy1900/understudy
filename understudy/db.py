@@ -384,6 +384,26 @@ class Database:
             (node_id, zone, fault_class, seed, dumps(params or {}), time.time()),
         )
 
+    async def clear_fault_truth(self, node_id: str) -> None:
+        """Marks every uncleared fault on the node as cleared."""
+        await self.execute(
+            "UPDATE faults_truth SET cleared_at = ? WHERE node_id = ? AND cleared_at IS NULL", (time.time(), node_id)
+        )
+
+    async def active_faults(self, node_id: str | None = None) -> list[Row]:
+        sql = "SELECT * FROM faults_truth WHERE cleared_at IS NULL"
+        params: tuple = ()
+        if node_id is not None:
+            sql += " AND node_id = ?"
+            params = (node_id,)
+        return await self.fetchall(sql + " ORDER BY id", params)
+
+    async def link_fault_incident(self, node_id: str, incident_id: int) -> None:
+        await self.execute(
+            "UPDATE faults_truth SET incident_id = ? WHERE node_id = ? AND cleared_at IS NULL AND incident_id IS NULL",
+            (incident_id, node_id),
+        )
+
     async def add_heldout_report(
         self,
         kind: str,
