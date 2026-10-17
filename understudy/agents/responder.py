@@ -29,6 +29,7 @@ class Outcome:
     steps: int = 0
     quality: int | None = None
     claim: dict[str, str] | None = None
+    infra: bool = False  # the model API failed or stalled, which says nothing about the rung's skill
 
 
 def handoff_text(actions: list[dict[str, Any]], note: str) -> str:
@@ -90,7 +91,10 @@ class Responder:
                 if turn is not None:
                     return turn
                 raw = result.content
-                log.info("incident %s: unparseable reply (%d chars), attempt %d", self.incident["id"], len(raw), attempt + 1)
+                log.info(
+                    "incident %s: unparseable reply (%d chars, %s), attempt %d: %r",
+                    self.incident["id"], len(raw), result.finish_reason, attempt + 1, raw[:160],
+                )
         return None
 
     async def _loop(self, agent: str) -> Outcome:
@@ -109,14 +113,16 @@ class Responder:
             try:
                 turn = await self._next_turn(messages, agent, dog)
             except TimeoutError:
-                return Outcome("escalate", f"no progress for {ctx.stall_s:.0f}s: the model call did not finish", dog.steps)
+                return Outcome(
+                    "escalate", f"no progress for {ctx.stall_s:.0f}s: the model call did not finish", dog.steps, infra=True
+                )
             except BudgetExceeded:
                 raise
             except Exception as exc:
                 model_errors += 1
                 log.warning("incident %s: model call failed (%d): %r", incident["id"], model_errors, exc)
                 if model_errors >= 2:
-                    return Outcome("escalate", f"model calls keep failing: {type(exc).__name__}", dog.steps)
+                    return Outcome("escalate", f"model calls keep failing: {type(exc).__name__}", dog.steps, infra=True)
                 continue
             if turn is None:
                 return Outcome("escalate", "the model did not return a valid action after a re-prompt", dog.steps)

@@ -42,6 +42,7 @@ DEMOTE_BELOW = 0.6
 SCRIPT_ATTEMPTS = 3
 SYMPTOM_PROBES = 6
 SYMPTOM_GAP_S = 1.5
+INFRA_RERUNS = 2
 
 
 @dataclass
@@ -54,6 +55,7 @@ class Trial:
     steps: int
     cost_usd: float
     reason: str = ""
+    void: bool = False
 
 
 def start_rung(final_rung: str, escalations: int) -> str:
@@ -242,6 +244,8 @@ class Promoter:
                 if failures > K - PASS_NEEDED:
                     return
                 trial = await self._trial(node, fault_class, candidate, seed, "proving")
+                if trial.void:
+                    return
                 trials.append(trial)
                 failures += 0 if trial.passed else 1
             finally:
@@ -280,8 +284,9 @@ class Promoter:
         ctx.state.set_status(node_id, "repairing", f"proving {fault_class} at {rung}")
         incident_id: int | None = None
         outcome = Outcome("escalate", "trial did not run")
+        reruns = 0
         try:
-            for attempt in range(3):
+            for attempt in range(INFRA_RERUNS + 3):
                 try:
                     await faults.inject(ctx.sup, node_id, fault_class, seed, db)
                     symptom = await self._symptom(node_id)
@@ -293,7 +298,14 @@ class Promoter:
                     outcome = await asyncio.wait_for(
                         Responder(ctx, row, rung, fault_class, hint).run(), TRIAL_TIMEOUT_S
                     )
-                    break
+                    if not outcome.infra or reruns >= INFRA_RERUNS:
+                        break
+                    reruns += 1
+                    log.info("%s trial %s at %s seed %d on %s: model API failure (%s), running it again",
+                             kind, fault_class, rung, seed, node_id, outcome.reason[:60])
+                    await db.update_incident(incident_id, status="unresolved", closed_at=time.time())
+                    incident_id = None
+                    await self._reset(node_id)
                 except BudgetExceeded:
                     if incident_id is not None:
                         await db.update_incident(incident_id, status="unresolved", closed_at=time.time())
@@ -325,6 +337,11 @@ class Promoter:
         db = self.ctx.db
         passed = outcome.status == "verified"
         cost, steps = 0.0, outcome.steps
+        if outcome.infra:
+            if incident_id is not None:
+                await db.update_incident(incident_id, status="unresolved", closed_at=time.time())
+            log.warning("%s trial %s at %s seed %d on %s: voided, the model API kept failing", kind, fault_class, rung, seed, node_id)
+            return Trial(fault_class, rung, seed, node_id, False, steps, 0.0, outcome.reason, void=True)
         if incident_id is not None:
             cost = float(await db.scalar("SELECT COALESCE(SUM(cost_usd), 0) FROM llm_calls WHERE incident_id = ?", (incident_id,)) or 0.0)
             steps = int(await db.scalar("SELECT COUNT(*) FROM actions WHERE incident_id = ?", (incident_id,)) or 0)
@@ -446,7 +463,9 @@ class Promoter:
             async def one(fault_class: str, seed: int) -> None:
                 node = await self._pool.get()
                 try:
-                    trials.append(await self._trial(node, fault_class, HELDOUT_RUNG, seed, "heldout_class"))
+                    trial = await self._trial(node, fault_class, HELDOUT_RUNG, seed, "heldout_class")
+                    if not trial.void:
+                        trials.append(trial)
                 finally:
                     self._pool.put_nowait(node)
 

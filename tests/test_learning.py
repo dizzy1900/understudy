@@ -283,6 +283,32 @@ async def test_promotion_needs_a_lower_mean_cost(tmp_path, monkeypatch, fast):
     assert (await ctx.db.get_ladder())["model_id_case"] == "super"
 
 
+def api_failure_chat(failures):
+    chat = trial_chat(4)
+    chat.queues["responder"] = [RuntimeError("429 too many requests")] * failures + chat.queues["responder"]
+    return chat
+
+
+async def test_trial_is_run_again_when_the_model_api_fails_and_only_the_good_run_counts(tmp_path, monkeypatch, fast):
+    ctx, inject = await promoter_context(tmp_path, api_failure_chat(2))
+    promoter = await make_promoter(ctx, inject, monkeypatch)
+    trial = await promoter._trial("pg-01", "model_id_case", "lightning", 100_001, "proving")
+    assert trial.passed and not trial.void
+    reports = await ctx.db.fetchall("SELECT * FROM heldout_reports")
+    assert len(reports) == 1 and reports[0]["passed"] == 1
+    statuses = [r["status"] for r in await ctx.db.fetchall("SELECT status FROM incidents WHERE zone = 'proving' ORDER BY id")]
+    assert statuses == ["unresolved", "verified"]
+
+
+async def test_trial_is_voided_not_failed_when_the_model_api_never_recovers(tmp_path, monkeypatch, fast):
+    ctx, inject = await promoter_context(tmp_path, api_failure_chat(8))
+    promoter = await make_promoter(ctx, inject, monkeypatch)
+    trial = await promoter._trial("pg-01", "model_id_case", "lightning", 100_001, "proving")
+    assert trial.void and not trial.passed
+    assert await ctx.db.fetchall("SELECT * FROM heldout_reports") == []
+    assert all(r["status"] == "unresolved" for r in await ctx.db.fetchall("SELECT status FROM incidents WHERE zone = 'proving'"))
+
+
 async def test_run_now_reports_when_nothing_is_ready_or_a_run_is_active(tmp_path, monkeypatch, fast):
     ctx, inject = await promoter_context(tmp_path, trial_chat())
     promoter = await make_promoter(ctx, inject, monkeypatch)
