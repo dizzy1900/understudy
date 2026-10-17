@@ -5,7 +5,7 @@ import pytest
 from starlette.testclient import TestClient
 
 from tests.agent_support import NODE, ScriptedChat, make_context
-from understudy import ledger
+from understudy import briefing, ledger
 from understudy.agents import chaos as chaos_module
 from understudy.agents.chaos import ChaosOps
 from understudy.events import Narration
@@ -110,26 +110,58 @@ def test_inject_validation(served, monkeypatch):
     assert client.post("/api/inject", json={"node_id": NODE, "fault_class": "disk_full"}).status_code == 409
 
 
-def test_away_and_back_produce_a_briefing_from_the_database(served):
+def test_chaos_command_returns_the_plan_and_confirmation(served, monkeypatch):
+    client, orch = served
+
+    async def fake_inject(sup, node_id, fault_class, seed=None, db=None):
+        return SimpleNamespace(seed=seed, node_id=node_id, fault_class=fault_class)
+
+    monkeypatch.setattr(chaos_module.faults, "inject", fake_inject)
+    orch.ctx.chat.queues["chaos"] = [
+        '{"action": "inject", "rows": null, "targets": [{"node_id": "r1-01", "fault_class": "disk_full"}]}',
+        '{"action": null, "rows": null, "targets": []}',
+    ]
+    ok = client.post("/api/chaos", json={"command": "fill the disk on r1-01"})
+    assert ok.status_code == 200
+    assert ok.json() == {
+        "injected": [{"node_id": NODE, "fault_class": "disk_full"}],
+        "plan": {"action": "inject", "rows": None, "targets": [{"node_id": NODE, "fault_class": "disk_full"}]},
+        "text": "Injected disk full on r1-01.",
+    }
+    nonsense = client.post("/api/chaos", json={"command": "what is the weather"})
+    assert nonsense.status_code == 422 and "could not understand" in nonsense.json()["detail"]
+
+
+def test_storm_without_free_nodes_is_a_409(served):
+    client, orch = served
+    orch.state.set_status(NODE, "down")
+    reply = client.post("/api/storm", json={})
+    assert reply.status_code == 409 and reply.json()["detail"] == "no free healthy nodes"
+
+
+def test_away_and_back_report_the_window_from_the_database(served, monkeypatch):
     client, orch = served
     since = seed(client, orch)
     sent = client.post("/api/away").json()["away_since"]
     assert sent == pytest.approx(time.time(), abs=5)
     client.portal.call(orch.db.set_away_since, since)
+    monkeypatch.setattr(briefing, "time", SimpleNamespace(time=lambda: since + 100))
     back = client.post("/api/back").json()
-    assert back["since"] == pytest.approx(since)
-    assert back["briefing"] == (
-        "While you were away: 3 incidents opened, 2 verified, 1 fix claims rejected by the referee. "
-        "1 promotions and 0 demotions. Spend $0.10."
-    )
-    assert back["ledger"]["incidents_total"] == 3
+    assert set(back) == {"text", "stats"}
+    assert back["text"].startswith("Welcome back.") and len(back["text"].split()) <= 70
+    stats = back["stats"]
+    assert stats["away_since"] == pytest.approx(since)
+    assert stats["incidents_handled"] == 3 and stats["verified"] == 2 and stats["false_fixes_caught"] == 1
+    assert [p["fault_class"] for p in stats["promotions"]] == ["disk_full"] and stats["demotions"] == []
+    assert stats["tokens_served"] == 200 and stats["cost_total_usd"] == pytest.approx(0.1)
+    assert stats["cache_hit_rate"] == pytest.approx(0.25)
     assert client.portal.call(orch.db.get_away_since) is None
 
 
 def test_stubs_answer_plainly(served):
     client, _ = served
     assert client.get("/api/voice/status").json()["available"] is False
-    assert client.post("/api/voice", content=b"x").status_code == 501
+    assert client.post("/api/voice", content=b"x").status_code == 422
     assert client.post("/api/promote/run").json()["started"] is False
     assert client.post("/api/demo/reset").status_code == 403
 

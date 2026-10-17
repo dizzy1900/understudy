@@ -241,24 +241,3 @@ class Narrator:
             return facts
         line = result.content.strip().strip('"').strip()
         return line if accept(line, facts, max_words) else facts
-
-
-async def briefing(db, since: float | None, now: float | None = None) -> str:
-    """The spoken summary of what happened since `since`, built from the database."""
-    now = time.time() if now is None else now
-    since = 0.0 if since is None else since
-    opened = await db.scalar("SELECT COUNT(*) FROM incidents WHERE opened_at > ?", (since,)) or 0
-    verified = await db.scalar("SELECT COUNT(*) FROM incidents WHERE status = 'verified' AND closed_at > ?", (since,)) or 0
-    unresolved = await db.scalar("SELECT COUNT(*) FROM incidents WHERE status = 'unresolved' AND closed_at > ?", (since,)) or 0
-    rejected = await db.scalar("SELECT COUNT(*) FROM verifications WHERE verdict = 'rejected' AND ts > ?", (since,)) or 0
-    promotions = await db.scalar("SELECT COUNT(*) FROM ladder_events WHERE direction = 'promote' AND ts > ?", (since,)) or 0
-    demotions = await db.scalar("SELECT COUNT(*) FROM ladder_events WHERE direction = 'demote' AND ts > ?", (since,)) or 0
-    spend = await db.scalar("SELECT COALESCE(SUM(cost_usd), 0) FROM llm_calls WHERE ts > ?", (since,)) or 0.0
-    text = (
-        f"While you were away: {opened} incidents opened, {verified} verified, "
-        f"{rejected} fix claims rejected by the referee. "
-        f"{promotions} promotions and {demotions} demotions. Spend ${spend:.2f}."
-    )
-    if unresolved:
-        text += f" {unresolved} incidents are unresolved and need a person."
-    return text

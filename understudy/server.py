@@ -13,8 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from config import settings
-from understudy import history, ledger
-from understudy.agents import narrator
+from understudy import briefing, history, ledger, voice
 from understudy.agents.chaos import ChaosError
 from understudy.events import Envelope
 
@@ -101,14 +100,17 @@ def create_app(orch: "Orchestrator", web_dist: Path | None = WEB_DIST) -> FastAP
         events = [{"type": r["type"], "ts": r["ts"], "data": r["data"]} for r in rows]
         return {"events": events, **await history.build_history(orch.db, since)}
 
+    voice_state = voice.VoiceState()
+    app.state.voice = voice_state
+
     @app.get("/api/voice/status")
     async def voice_status() -> dict:
-        return {"available": False, "model": settings.MODELS["omni"].id, "reason": "voice input is not implemented yet"}
+        return await voice.status(orch.ctx, voice_state)
 
     @app.post("/api/chaos")
     async def post_chaos(body: ChaosRequest) -> dict:
         try:
-            return {"injected": await orch.chaos.command(body.command)}
+            return await orch.chaos.command(body.command)
         except ChaosError as exc:
             raise _fail(exc) from None
 
@@ -135,17 +137,27 @@ def create_app(orch: "Orchestrator", web_dist: Path | None = WEB_DIST) -> FastAP
     @app.post("/api/back")
     async def post_back() -> dict:
         since = await orch.db.get_away_since()
-        if since is None:
-            since = await ledger.ledger_since(orch.db)
-        text = await narrator.briefing(orch.db, since)
+        report = await briefing.build(orch.ctx, since)
         await orch.db.set_away_since(None)
-        await orch.ctx.say(text, "high", polish=False)
-        return {"since": since, "briefing": text, "ledger": (await ledger.compute(orch.db)).model_dump(mode="json")}
+        await orch.ctx.say(report["text"], "high", polish=False, force=True)
+        return report
 
     @app.post("/api/voice")
     async def post_voice(request: Request) -> dict:
-        await request.body()
-        raise HTTPException(501, "voice input is not implemented yet")
+        declared = request.headers.get("content-length", "")
+        if declared.isdigit() and int(declared) > voice.MAX_BYTES:
+            raise HTTPException(413, f"audio is larger than {voice.MAX_BYTES // (1024 * 1024)} MB")
+        chunks, size = [], 0
+        async for chunk in request.stream():
+            size += len(chunk)
+            if size > voice.MAX_BYTES:
+                raise HTTPException(413, f"audio is larger than {voice.MAX_BYTES // (1024 * 1024)} MB")
+            chunks.append(chunk)
+        try:
+            text = await voice.transcribe(orch.ctx, b"".join(chunks), request.headers.get("content-type"), voice_state)
+        except voice.VoiceError as exc:
+            raise HTTPException(exc.status, exc.detail) from None
+        return {"transcript": text}
 
     @app.post("/api/promote/run")
     async def post_promote(fault_class: list[str] | None = Query(None)) -> dict[str, Any]:
