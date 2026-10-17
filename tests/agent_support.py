@@ -80,10 +80,13 @@ NODE = "r1-01"
 OPEN: list[Database] = []
 
 
-async def make_context(tmp: Path, chat: ScriptedChat, referee: FakeReferee | None = None, **overrides: Any) -> Context:
+async def make_context(
+    tmp: Path, chat: ScriptedChat, referee: FakeReferee | None = None, proving: int = 0, **overrides: Any
+) -> Context:
     db = await Database.open(tmp / "t.db")
     OPEN.append(db)
     specs = [settings.NodeSpec(NODE, 1, 1, "live", 19101)]
+    specs += [settings.NodeSpec(f"pg-0{i}", 0, i, "proving", 19110 + i) for i in range(1, proving + 1)]
     sup = Supervisor(specs=specs, nodes_dir=tmp / "nodes")
     sup.ensure_all()
     bus = EventBus()

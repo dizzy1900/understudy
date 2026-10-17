@@ -284,11 +284,17 @@ class Database:
     # incidents ----------------------------------------------------------------
 
     async def open_incident(
-        self, node_id: str, symptom: str, severity: str, zone: str = "live", opened_at: float | None = None
+        self,
+        node_id: str,
+        symptom: str,
+        severity: str,
+        zone: str = "live",
+        opened_at: float | None = None,
+        status: str = "open",
     ) -> int:
         return await self.execute(
-            "INSERT INTO incidents (node_id, zone, symptom, severity, opened_at) VALUES (?, ?, ?, ?, ?)",
-            (node_id, zone, symptom, severity, time.time() if opened_at is None else opened_at),
+            "INSERT INTO incidents (node_id, zone, symptom, severity, status, opened_at) VALUES (?, ?, ?, ?, ?, ?)",
+            (node_id, zone, symptom, severity, status, time.time() if opened_at is None else opened_at),
         )
 
     async def update_incident(self, incident_id: int, **fields: Any) -> None:
