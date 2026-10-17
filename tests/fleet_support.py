@@ -1,6 +1,7 @@
 """Helpers for fleet tests: a local stand-in for the upstream API and node factories."""
 from __future__ import annotations
 
+import asyncio
 import socket
 import threading
 import time
@@ -10,7 +11,7 @@ from typing import Any
 import httpx
 import uvicorn
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 
 from config import settings
 from understudy.fleet.nodeconfig import dump_config, load_config_dict
@@ -20,6 +21,7 @@ ALLOWED_PARAMS = {
     "model", "messages", "max_tokens", "temperature", "chat_template_kwargs", "top_p", "top_k", "seed", "stop",
 }
 TEST_MODEL = "test/Canonical-Model-1B"
+MODEL = TEST_MODEL
 
 
 def free_port() -> int:
@@ -71,8 +73,6 @@ class FakeUpstream(ThreadedServer):
         return f"http://127.0.0.1:{self.port}/v1"
 
     async def _chat(self, request: Request) -> JSONResponse:
-        import asyncio
-
         body = await request.json()
         self.requests.append({"body": body, "auth": request.headers.get("authorization")})
         self.in_flight += 1
@@ -113,6 +113,58 @@ class FakeUpstream(ThreadedServer):
             }
         )
 
+
+class FakeNode(ThreadedServer):
+    """A node whose behaviour the test controls, so each referee check can fail in isolation."""
+
+    def __init__(self):
+        super().__init__(FastAPI())
+        self.mode = "ok"
+        self.served = 0
+        self.in_flight = 0
+        self.die_after = None
+        self.app.post("/v1/chat/completions")(self._chat)
+
+    def completion(self, content="OK", finish="stop", model=MODEL):
+        return JSONResponse(
+            {
+                "model": model,
+                "choices": [{"message": {"content": content}, "finish_reason": finish}],
+                "usage": {"prompt_tokens": 10, "completion_tokens": 2, "total_tokens": 12},
+            }
+        )
+
+    async def _chat(self):
+        self.served += 1
+        self.in_flight += 1
+        try:
+            if self.die_after is not None and self.served > self.die_after:
+                return JSONResponse({"error": {"message": "worker gone"}}, status_code=503)
+            await asyncio.sleep(0.05)
+            mode = self.mode
+            if mode == "ok":
+                return self.completion()
+            if mode == "http404":
+                return JSONResponse({"code": "model_not_found", "message": "Model not found: x"}, status_code=404)
+            if mode == "http403":
+                return JSONResponse({"errors": ["Request blocked: parameter 'x' is not allowed"]}, status_code=403)
+            if mode == "plain404":
+                return PlainTextResponse("404 page not found", status_code=404)
+            if mode == "empty":
+                return self.completion(content=None, finish="length")
+            if mode == "blank":
+                return self.completion(content="  \n")
+            if mode == "truncated":
+                return self.completion(content="The user says", finish="length")
+            if mode == "wrong_model":
+                return self.completion(model="other/Model")
+            if mode == "garbage":
+                return JSONResponse({"hello": "world"})
+            if mode == "burst_fails":
+                return self.completion() if self.in_flight == 1 else JSONResponse({"code": "rate_limit_exceeded", "message": "too many"}, status_code=429)
+            raise AssertionError(mode)
+        finally:
+            self.in_flight -= 1
 
 def make_supervisor(tmp: Path, count: int, upstream_url: str, model: str = TEST_MODEL, prefix: str = "t") -> Supervisor:
     specs = [
