@@ -94,7 +94,7 @@ def render_card(row: dict[str, Any]) -> str:
     fix = card.get("fix_steps") or card.get("fix") or []
     if isinstance(fix, str):
         fix = [fix]
-    lines = [f"## {row['fault_class']} (v{row['version']})"]
+    lines = [f"## {row['fault_class']}"]
     if card.get("signature"):
         lines.append(f"Signature: {card['signature']}")
     if card.get("diagnosis"):
@@ -104,6 +104,8 @@ def render_card(row: dict[str, Any]) -> str:
     if card.get("pitfalls"):
         pitfalls = card["pitfalls"]
         lines.append("Pitfalls: " + (pitfalls if isinstance(pitfalls, str) else " ".join(pitfalls)))
+    if card.get("evidence"):
+        lines.append(f"Evidence: {card['evidence']}")
     return "\n".join(lines)
 
 
