@@ -414,8 +414,10 @@ class LLMClient:
             delay = min(BACKOFF_CAP_S, BACKOFF_BASE_S * 2 ** (retries - 1)) + random.uniform(0, 0.5)
             if retry_after:
                 delay = max(delay, min(retry_after, RETRY_AFTER_CAP_S))
+                # Only a server-stated wait is shared. Without one, 429s arrive at random and holding every other
+                # caller for this caller's backoff stalls the whole model.
+                limiter.block_for(delay)
             log.warning("%s: %s, retry %d in %.1fs", model_id, type(error).__name__, retries, delay)
-            limiter.block_for(delay)
             await self._sleep(delay)
 
     def _parse(self, completion: Any, key: str, model_id: str, latency_ms: float) -> LLMResult:

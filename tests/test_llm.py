@@ -169,6 +169,16 @@ async def test_retry_after_header_is_honoured(tmp_path):
 
 
 @pytest.mark.anyio
+async def test_only_a_server_stated_wait_holds_back_other_callers(tmp_path):
+    server = FakeServer(failure(429), completion(), failure(429, headers={"retry-after": "7"}), completion())
+    async with make_client(tmp_path, server) as (client, _, _):
+        await client.chat("r", "nano", MESSAGES, thinking=False, max_tokens=64)
+        assert client._limiters["nano"].requests._blocked_until == 0.0
+        await client.chat("r", "nano", MESSAGES, thinking=False, max_tokens=64)
+        assert client._limiters["nano"].requests._blocked_until > 0.0
+
+
+@pytest.mark.anyio
 async def test_gives_up_after_six_tries_and_logs_the_failure(tmp_path):
     server = FakeServer(failure(503))
     async with make_client(tmp_path, server) as (client, db, fake):
