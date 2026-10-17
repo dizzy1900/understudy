@@ -107,7 +107,7 @@ export default function Proving() {
       <pointLight ref={light} position={[0, 2.6, 0.6]} color={COLORS.repairing} intensity={0} distance={9} decay={2} />
       <Html position={[0, 0.05, hd + 0.75]} pointerEvents="none" zIndexRange={[60, 0]} style={{ pointerEvents: "none" }}>
         <div ref={label} className="sc-bay">
-          <div className="t">PROVING GROUND</div>
+          <div className="t">Proving ground</div>
           <div ref={sub} className="s" />
         </div>
       </Html>

@@ -17,18 +17,22 @@ export default function Overlay() {
 
   return (
     <div className="overlay-layer">
-      <div className="top-bar">
+      <div className="top-bar interactive">
         <Header />
-        <Stats />
       </div>
-      <div className="left-stack">
+      <aside className="side-left interactive">
         <ReplayBanner />
         <Briefing />
+        <Controls />
+      </aside>
+      <div className="scene-slot">
+        <Captions />
       </div>
-      <Ladder />
+      <aside className="side-right interactive">
+        <Stats />
+        <Ladder />
+      </aside>
       <SkillCardPanel />
-      <Captions />
-      <Controls />
       <ListeningRing />
       <Intro />
     </div>

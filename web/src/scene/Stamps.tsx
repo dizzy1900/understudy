@@ -20,7 +20,7 @@ function Stamp({ stamp }: { stamp: StampData }) {
       <div className={`sc-stamp ${ok ? "verified" : "rejected"}`} style={style}>
         <div className="anchor">
           <div className="face">
-            <div className="v">{ok ? "VERIFIED" : "REJECTED"}</div>
+            <div className="v">{ok ? "Verified" : "Rejected"}</div>
             {detail && <div className="d">{detail}</div>}
           </div>
         </div>

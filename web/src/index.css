@@ -53,7 +53,33 @@ button {
 
 .scene-layer {
   position: absolute;
-  inset: 0;
+  inset: 56px 340px 0 260px;
+  border: 1px solid var(--hairline);
+  border-top: 0;
+  border-bottom: 0;
+}
+
+@media (max-width: 960px) {
+  html,
+  body,
+  #root {
+    height: auto;
+    min-height: 100%;
+    overflow: auto;
+  }
+
+  .scene-layer {
+    inset: 56px 0 auto 0;
+    height: 55vh;
+    border: 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .overlay-layer {
+    position: relative;
+    inset: auto;
+    min-height: 100vh;
+  }
 }
 
 .overlay-layer {
