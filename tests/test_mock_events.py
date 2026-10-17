@@ -53,7 +53,9 @@ def test_operator_endpoints(client):
     assert client.post("/api/storm", json={"rows": [3]}).status_code == 200
     assert "injected" in client.post("/api/chaos", json={"command": "kill r2-03 with a crashed worker"}).json()
     assert client.post("/api/away").json()["away_since"] > 0
-    assert "While you were away" in client.post("/api/back").json()["briefing"]
+    back = client.post("/api/back").json()
+    assert back["text"].startswith("Welcome back.")
+    assert back["stats"]["incidents"] >= 0
     assert client.post("/api/promote/run").json()["started"] is True
     assert client.post("/api/demo/reset").json() == {"ok": True}
 
