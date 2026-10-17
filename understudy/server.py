@@ -7,13 +7,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import anyio
-from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from config import settings
-from understudy import ledger
+from understudy import history, ledger
 from understudy.agents import narrator
 from understudy.agents.chaos import ChaosError
 from understudy.events import Envelope
@@ -98,7 +98,8 @@ def create_app(orch: "Orchestrator", web_dist: Path | None = WEB_DIST) -> FastAP
             rows = list(reversed(await orch.db.fetchall("SELECT * FROM events ORDER BY id DESC LIMIT ?", (HISTORY_LIMIT,))))
             for row in rows:
                 row["data"] = json.loads(row.pop("data_json"))
-        return {"events": [{"type": r["type"], "ts": r["ts"], "data": r["data"]} for r in rows]}
+        events = [{"type": r["type"], "ts": r["ts"], "data": r["data"]} for r in rows]
+        return {"events": events, **await history.build_history(orch.db, since)}
 
     @app.get("/api/voice/status")
     async def voice_status() -> dict:
@@ -147,10 +148,10 @@ def create_app(orch: "Orchestrator", web_dist: Path | None = WEB_DIST) -> FastAP
         raise HTTPException(501, "voice input is not implemented yet")
 
     @app.post("/api/promote/run")
-    async def post_promote() -> dict[str, Any]:
+    async def post_promote(fault_class: list[str] | None = Query(None)) -> dict[str, Any]:
         if orch.promoter is None:
             return {"started": False, "reason": "the promoter is not running"}
-        return await orch.promoter.run_now()
+        return await orch.promoter.run_now(fault_class)
 
     @app.post("/api/demo/reset")
     async def post_reset() -> dict:

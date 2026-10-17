@@ -69,7 +69,12 @@ def test_ladder_skills_and_history(served):
     assert skills[0]["fault_class"] == "disk_full" and skills[0]["version"] == 1 and skills[0]["signature"] == "507"
     events = client.get("/api/history").json()["events"]
     assert [e["type"] for e in events] == ["tokens", "tokens"]
-    assert client.get("/api/history", params={"since": 1e12}).json() == {"events": []}
+    body = client.get("/api/history").json()
+    assert [e["evidence"]["total"] for e in body["ladder_events"]] == [5]
+    assert [(p["total"], p["verified"]) for p in body["incidents"]] == [(1, 0), (2, 0), (3, 0), (3, 1), (3, 2)]
+    assert [p["value"] for p in body["cost_per_incident"]] == pytest.approx([0.04, 0.03])
+    assert client.get("/api/history", params={"since": 1e12}).json() == {
+        "events": [], "ladder_events": [], "incidents": [], "cost_per_incident": []}
 
 
 def test_websocket_starts_with_snapshot_and_ledger_then_streams(served):
