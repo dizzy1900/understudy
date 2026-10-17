@@ -224,6 +224,8 @@ async def test_step_budget_escalates(tmp_path):
     ctx = await make_context(tmp_path, chat, max_steps=4)
     _, outcome = await run_responder(ctx)
     assert outcome.status == "escalate" and "step budget" in outcome.reason and outcome.steps == 4
+    assert "3 steps left" in chat.of("responder")[1]["messages"][-1]["content"]
+    assert "steps left" not in chat.of("responder")[0]["messages"][-1]["content"]
 
 
 async def test_model_errors_escalate_and_budget_errors_propagate(tmp_path):

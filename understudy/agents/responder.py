@@ -139,6 +139,9 @@ class Responder:
                     return Outcome("escalate", f"two fix claims rejected by the referee: {review.rejection_details()}", dog.steps)
                 messages.append(protocol.rejection_message(review.rejection_details()))
                 continue
+            left = ctx.max_steps - dog.steps
+            if 0 < left <= 3:
+                result.text += f"\n{left} steps left, and claim_fixed counts as one. Claim as soon as a probe passes."
             messages.append(protocol.tool_result_message(turn.action, result.ok, result.text))
             if stuck:
                 return Outcome("escalate", stuck, dog.steps)
