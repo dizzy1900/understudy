@@ -496,9 +496,9 @@ kbd {
 
 .captions {
   left: 50%;
-  bottom: 44px;
+  bottom: 36px;
   transform: translateX(-50%);
-  width: 920px;
+  width: 860px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -510,13 +510,17 @@ kbd {
   margin: 0;
   max-width: 100%;
   text-align: center;
-  font-size: 36px;
+  font-size: 28px;
   font-weight: 600;
-  line-height: 1.22;
+  line-height: 1.24;
   color: #fff;
   text-wrap: balance;
-  padding: 10px 26px 12px;
-  border-radius: 14px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  padding: 8px 22px 10px;
+  border-radius: 12px;
   background: rgba(7, 8, 11, 0.58);
   text-shadow: 0 2px 14px rgba(0, 0, 0, 0.85);
   animation: cap-in 0.45s ease-out both, cap-out var(--fade) ease-in calc(var(--ttl) - var(--fade)) forwards;

@@ -3,13 +3,13 @@ import { useFrame } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
-import { COUNTER_POSITION } from "../layout";
+import { COUNTER_FRAME, COUNTER_POSITION } from "../layout";
 import { tokensServed, useStream } from "../store";
 import { COLORS } from "../theme";
 import { geo, useOwned } from "./shared";
 
-const FRAME_W = 11;
-const FRAME_H = 2.5;
+const FRAME_W = COUNTER_FRAME.w;
+const FRAME_H = COUNTER_FRAME.h;
 const BAR = 0.09;
 
 function group(n: number): string {

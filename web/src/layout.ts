@@ -12,6 +12,7 @@ export const COMMANDER_ORB_POSITION: Vec3 = [0, 1.9, 7.4];
 
 /** The glowing counter that the ceiling stream flows into, on the far wall. */
 export const COUNTER_POSITION: Vec3 = [0, 4.6, -10.2];
+export const COUNTER_FRAME = { w: 11, h: 3 };
 export const CEILING_Y = 4.4;
 
 /** Proving ground bay: 2 x 2 smaller racks behind glass, left of the hall. */

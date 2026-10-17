@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { CAPTION_TTL_MS, useStream } from "../store";
 
 const FADE_OUT_MS = 600;
-const VISIBLE = 3;
+const VISIBLE = 2;
 
 export default function Captions() {
   const captions = useStream((s) => s.captions);
