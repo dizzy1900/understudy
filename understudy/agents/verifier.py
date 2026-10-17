@@ -58,7 +58,9 @@ class Verifier:
     def __init__(self, ctx: Context):
         self.ctx = ctx
 
-    async def review(self, incident: dict[str, Any], claim: dict[str, str], responder_id: str) -> Review:
+    async def review(
+        self, incident: dict[str, Any], claim: dict[str, str], responder_id: str, grade: bool = True
+    ) -> Review:
         ctx = self.ctx
         node_id = incident["node_id"]
         agent = ctx.spawn(
@@ -68,7 +70,7 @@ class Verifier:
             ctx.think(agent, f"Running the referee on {node_id}: probe, 8s wait, burst of 4, probe.")
             verdict = await ctx.referee.verify(node_id)
             review = Review(verdict)
-            if verdict.verified:
+            if verdict.verified and grade:
                 review.quality, review.reason = await self._grade(incident, claim, agent)
             note = verdict.note
             if review.quality is not None:

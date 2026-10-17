@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import sys
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -11,6 +10,7 @@ from typing import Any
 from config import settings
 from understudy.agents import protocol
 from understudy.agents.protocol import REPROMPT, Turn, parse_turn
+from understudy.agents.script_runner import run_script
 from understudy.agents.tools import ToolBox, first_line, summarize_args
 from understudy.agents.watchdog import Watchdog
 from understudy.context import Context
@@ -20,7 +20,6 @@ from understudy.llm import BudgetExceeded
 log = logging.getLogger("understudy.responder")
 
 MAX_TOKENS = {"super": 4096, "lightning": 3072}
-SCRIPT_TIMEOUT_S = 90.0
 
 
 @dataclass
@@ -150,7 +149,7 @@ class Responder:
         """Returns an Outcome when the claim is verified, None when the referee rejected it."""
         ctx = self.ctx
         ctx.bus.publish(FixClaimed(incident_id=self.incident["id"], agent_id=agent, summary=claim["summary"][:240]))
-        review = await ctx.verifier.review(self.incident, claim, agent)
+        review = await ctx.verifier.review(self.incident, claim, agent, grade=self.rung != "script")
         self._last_review = review
         dog.reset_progress()
         if review.verified:
@@ -169,32 +168,24 @@ class Responder:
             return Outcome("escalate", f"no compiled script for {self.fault_class}")
         ctx.think(agent, f"Running {script.name} on {node_id}.")
         started = time.monotonic()
-        proc = await asyncio.create_subprocess_exec(
-            sys.executable, str(script), node_id, cwd=settings.ROOT, stdin=asyncio.subprocess.DEVNULL,
-            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT,
-        )
-        try:
-            out, _ = await asyncio.wait_for(proc.communicate(), SCRIPT_TIMEOUT_S)
-        except TimeoutError:
-            proc.kill()
-            await proc.wait()
-            out = b"timed out"
-        ok = proc.returncode == 0
-        text = out.decode("utf-8", "replace").strip()[-600:] or f"exit code {proc.returncode}"
-        args = {"script": script.name, "node_id": node_id}
-        await ctx.db.add_action(incident["id"], agent, 1, "run_script", args, ok, text)
+        tools = ToolBox(ctx, incident["id"], node_id, agent)
+        result = await run_script(tools, script)
+        seconds = time.monotonic() - started
+        steps = result.calls + 1
+        text = result.summary if result.ok else result.error
+        args = {"script": script.name}
+        await ctx.db.add_action(incident["id"], agent, steps, "run_script", args, result.ok, text)
         ctx.bus.publish(
             ToolCall(
-                agent_id=agent, tool="run_script", args_summary=summarize_args(args), ok=ok,
+                agent_id=agent, tool="run_script", args_summary=summarize_args(args), ok=result.ok,
                 result_summary=first_line(text),
             )
         )
-        if not ok:
-            return Outcome("escalate", f"script failed after {time.monotonic() - started:.0f}s: {first_line(text, 100)}", 1)
+        if not result.ok:
+            return Outcome("escalate", f"script failed after {seconds:.0f}s: {first_line(result.error, 120)}", steps)
         dog = Watchdog(ctx.max_steps, ctx.stall_s)
-        dog.steps = 1
-        claim = {"summary": f"Ran compiled fix {script.name}.", "root_cause": f"Known fault: {self.fault_class}."}
-        outcome = await self._claim(agent, claim, dog)
+        dog.steps = steps
+        outcome = await self._claim(agent, {"summary": result.summary, "root_cause": result.root_cause}, dog)
         if outcome is not None:
             return outcome
-        return Outcome("escalate", f"referee rejected the script's fix: {self._last_review.rejection_details()}", 1)
+        return Outcome("escalate", f"referee rejected the script's fix: {self._last_review.rejection_details()}", steps)

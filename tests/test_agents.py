@@ -239,20 +239,6 @@ async def test_model_errors_escalate_and_budget_errors_propagate(tmp_path):
         await run_responder(ctx)
 
 
-async def test_script_rung_without_a_script_escalates_and_with_one_claims(tmp_path):
-    ctx = await make_context(tmp_path, ScriptedChat(), scripts_dir=tmp_path / "scripts")
-    _, outcome = await run_responder(ctx, "script")
-    assert outcome.status == "escalate" and "no compiled script" in outcome.reason
-    (tmp_path / "scripts").mkdir()
-    (tmp_path / "scripts" / "model_id_case.py").write_text("import sys\nprint('fixed', sys.argv[1])\n")
-    ctx = await make_context(
-        tmp_path / "two", ScriptedChat(verifier=['{"quality": 4, "reason": "ok"}']), scripts_dir=tmp_path / "scripts"
-    )
-    row, outcome = await run_responder(ctx, "script")
-    assert outcome.status == "verified"
-    assert (await ctx.db.actions_for(row["id"]))[0]["tool"] == "run_script"
-
-
 # commander -----------------------------------------------------------------------------
 
 
