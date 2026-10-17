@@ -8,7 +8,7 @@
     "api": {
       "root": ".",
       "framework": "fastapi",
-      "entrypoint": "understudy/vercel_app.py"
+      "entrypoint": "understudy.vercel_app:app"
     }
   },
   "rewrites": [
