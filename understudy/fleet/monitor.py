@@ -5,6 +5,7 @@ import asyncio
 import contextlib
 import logging
 import random
+import time
 
 from config import settings
 from understudy.db import Database
@@ -39,10 +40,16 @@ class Monitor:
         self.failure_threshold = failure_threshold
         self.rng = rng or random.Random()
         self.failures: dict[str, int] = {}
+        self._held: dict[str, float] = {}
         self._tasks: list[asyncio.Task] = []
 
     def reset(self, node_id: str) -> None:
         """Called when an incident closes so the next failure counts from zero."""
+        self.failures[node_id] = 0
+
+    def hold(self, node_id: str, seconds: float) -> None:
+        """Keeps the node from opening another incident for a while, used after an incident ends unresolved."""
+        self._held[node_id] = time.monotonic() + seconds
         self.failures[node_id] = 0
 
     def _symptom(self, node_id: str, probe: ProbeResult) -> tuple[str, str]:
@@ -71,6 +78,8 @@ class Monitor:
             self.state.set_status(node_id, "degraded", probe.detail)
             return probe
         self.state.set_status(node_id, "down", probe.detail)
+        if time.monotonic() < self._held.get(node_id, 0.0):
+            return probe
         await self._open_incident(node_id, probe)
         return probe
 

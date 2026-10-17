@@ -193,9 +193,8 @@ class Supervisor:
         paths = self.ensure_node(node_id)
         with contextlib.suppress(OSError):
             paths.exit_info.unlink()
-        if paths.stderr.exists() and paths.stderr.stat().st_size > 256 * 1024:
-            paths.stderr.write_bytes(paths.stderr.read_bytes()[-64 * 1024:])
-        with open(paths.stderr, "ab") as err:
+        # Each process gets a fresh stderr so lines from an earlier, already repaired fault do not read as current.
+        with open(paths.stderr, "wb") as err:
             proc = subprocess.Popen(
                 self._argv(paths), cwd=settings.ROOT, stdin=subprocess.DEVNULL, stdout=err, stderr=subprocess.STDOUT,
                 start_new_session=True,

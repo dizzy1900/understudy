@@ -206,3 +206,17 @@ async def test_traffic_failures_are_counted_not_published(node):
         await traffic.stop()
     assert traffic.failed == 1
     assert all(e.type != "tokens" for e in drain(sub))
+
+
+async def test_hold_keeps_a_failing_node_from_reopening_an_incident(node, db):
+    state = FleetState([spec()])
+    monitor = Monitor(state, Referee(lambda _n: node.port, model=MODEL), db)
+    node.mode = "http404"
+    monitor.hold("n-01", 60)
+    for _ in range(4):
+        await monitor.check("n-01")
+    assert state.status("n-01") == "down"
+    assert await db.open_incidents() == []
+    monitor._held["n-01"] = 0.0
+    await monitor.check("n-01")
+    assert len(await db.open_incidents()) == 1

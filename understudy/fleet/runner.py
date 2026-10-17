@@ -28,10 +28,13 @@ LOG_FILE = settings.LOG_DIR / "fleet.log"
 
 
 async def persist_events(bus: EventBus, db: Database) -> None:
-    """Stores every event except most fleet snapshots, which arrive every couple of seconds."""
+    """Stores every event except most fleet snapshots, which arrive every couple of seconds, and ledgers, which
+    are recomputed from the database on demand."""
     last_snapshot = 0.0
     with bus.subscribe(maxsize=5000) as sub:
         async for envelope in sub:
+            if envelope.type == "ledger":
+                continue
             if envelope.type == "fleet_snapshot":
                 if envelope.ts - last_snapshot < SNAPSHOT_PERSIST_S:
                     continue
