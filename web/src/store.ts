@@ -36,8 +36,10 @@ export interface Stamp {
   incident_id: number;
   verdict: "verified" | "rejected";
   quality: number | null;
-  /** The first failing probe, for example "burst 3/4", empty when the verdict is verified. */
+  /** The first failing probe, for example "burst 3/4" (bursts passed), empty when the verdict is verified. */
   failing: string;
+  /** What that probe reported, for example "connection refused". */
+  failDetail: string;
   probes: Probe[];
   note: string;
   at: number;
@@ -85,6 +87,18 @@ const MAX_CAPTIONS = 4;
 const MAX_MOVES = 30;
 const SEEN_LIMIT = 4000;
 const STALE_AGENT_MS = 4 * 60_000;
+/** Hydrated agents look this old, so the scene seats them at their rack instead of launching them again. */
+const HYDRATE_AGE_MS = 12_000;
+const HYDRATE_TYPES = new Set<string>([
+  "agent_spawned",
+  "agent_thought",
+  "tool_call",
+  "fix_claimed",
+  "agent_done",
+  "incident_opened",
+  "incident_closed",
+  "skill_updated",
+]);
 
 export interface StreamState {
   connected: boolean;
@@ -107,6 +121,8 @@ export interface StreamState {
   briefing: string | null;
   setConnected: (connected: boolean) => void;
   handle: (event: StreamEvent) => void;
+  /** Applies recent history without publishing it, so a page opened mid-incident shows the agents already at work. */
+  hydrate: (events: StreamEvent[]) => void;
   sweep: (now?: number) => void;
   setLadder: (ladder: Record<string, string>) => void;
   toggleMuted: () => void;
@@ -128,16 +144,48 @@ function firstSight(event: StreamEvent): boolean {
   return true;
 }
 
+/** Clears the store and the duplicate filter. Used by tests and by a manual reset. */
+export function resetStream(): void {
+  seen.clear();
+  seenOrder.length = 0;
+  useStream.setState(useStream.getInitialState(), true);
+}
+
 function emptyLadder(): Record<string, Rung> {
   return Object.fromEntries(ALL_CLASSES.slice(0, 10).map((name) => [name, "super" as Rung]));
 }
 
-function firstFailing(probes: Probe[]): string {
+/** The commander is spawned once when the orchestrator starts, so a client that connects later only ever sees its
+ * thoughts. Everything else is spawned per incident and arrives with its own agent_spawned. */
+function withCommander(state: StreamState, agentId: string, now: number): StreamState["agents"] {
+  if (state.agents[agentId] || !agentId.startsWith("commander")) return state.agents;
+  const stub: AgentState = {
+    id: agentId,
+    role: "commander",
+    model: "",
+    rung: "super",
+    incident_id: null,
+    node_id: null,
+    thought: "",
+    thoughtAt: 0,
+    tool: null,
+    claim: null,
+    spawnedAt: now - HYDRATE_AGE_MS,
+    doneAt: null,
+    escalatedAt: null,
+    lastEventAt: now,
+  };
+  return { ...state.agents, [agentId]: stub };
+}
+
+function firstFailing(probes: Probe[]): { label: string; detail: string } {
   const bad = probes.find((p) => !p.ok);
-  if (!bad) return "";
-  const burst = /^burst_?(\d+)/.exec(bad.name);
-  if (burst) return `burst ${burst[1]}/${probes.filter((p) => p.name.startsWith("burst")).length || 4}`;
-  return bad.name.replace(/_/g, " ");
+  if (!bad) return { label: "", detail: "" };
+  const bursts = probes.filter((p) => p.name.startsWith("burst"));
+  const label = bad.name.startsWith("burst")
+    ? `burst ${bursts.filter((p) => p.ok).length}/${Math.max(bursts.length, 4)}`
+    : bad.name.replace(/_/g, " ");
+  return { label, detail: bad.detail };
 }
 
 export const useStream = create<StreamState>((set, get) => ({
@@ -178,12 +226,28 @@ export const useStream = create<StreamState>((set, get) => ({
     emit(event);
   },
 
+  hydrate: (events) => {
+    const now = Date.now() - HYDRATE_AGE_MS;
+    const ordered = events
+      .filter((event) => HYDRATE_TYPES.has(event.type))
+      .sort((a, b) => a.ts - b.ts);
+    set((state) => {
+      let next: StreamState = state;
+      for (const event of ordered) {
+        if (!firstSight(event)) continue;
+        next = { ...next, ...reduce(next, event, now) };
+      }
+      const agents = Object.fromEntries(Object.entries(next.agents).filter(([, a]) => a.doneAt === null));
+      return { ...next, agents, lastEventAt: state.lastEventAt };
+    });
+  },
+
   sweep: (now = Date.now()) => {
     const state = get();
     let agents = state.agents;
     for (const agent of Object.values(state.agents)) {
       const gone = agent.doneAt !== null && now - agent.doneAt > AGENT_LINGER_MS;
-      const stale = now - agent.lastEventAt > STALE_AGENT_MS;
+      const stale = agent.role !== "commander" && now - agent.lastEventAt > STALE_AGENT_MS;
       if (gone || stale) {
         if (agents === state.agents) agents = { ...agents };
         delete agents[agent.id];
@@ -283,19 +347,21 @@ function reduce(state: StreamState, event: StreamEvent, now: number): Partial<St
       return { ...base, agents: { ...state.agents, [d.agent_id]: agent } };
     }
     case "agent_thought": {
-      const agent = state.agents[event.data.agent_id];
+      const agents = withCommander(state, event.data.agent_id, now);
+      const agent = agents[event.data.agent_id];
       if (!agent) return base;
       return {
         ...base,
-        agents: { ...state.agents, [agent.id]: { ...agent, thought: event.data.text, thoughtAt: now, lastEventAt: now } },
+        agents: { ...agents, [agent.id]: { ...agent, thought: event.data.text, thoughtAt: now, lastEventAt: now } },
       };
     }
     case "tool_call": {
       const d = event.data;
-      const agent = state.agents[d.agent_id];
+      const agents = withCommander(state, d.agent_id, now);
+      const agent = agents[d.agent_id];
       if (!agent) return base;
       const tool = { name: d.tool, ok: d.ok, args: d.args_summary, result: d.result_summary, at: now };
-      return { ...base, agents: { ...state.agents, [agent.id]: { ...agent, tool, lastEventAt: now } } };
+      return { ...base, agents: { ...agents, [agent.id]: { ...agent, tool, lastEventAt: now } } };
     }
     case "fix_claimed": {
       const agent = state.agents[event.data.agent_id];
@@ -307,13 +373,15 @@ function reduce(state: StreamState, event: StreamEvent, now: number): Partial<St
     }
     case "verification": {
       const d = event.data;
+      const failure = d.verdict === "rejected" ? firstFailing(d.probes) : { label: "", detail: "" };
       const stamp: Stamp = {
         key: ++counter,
         node_id: d.node_id,
         incident_id: d.incident_id,
         verdict: d.verdict,
         quality: d.quality ?? null,
-        failing: d.verdict === "rejected" ? firstFailing(d.probes) : "",
+        failing: failure.label,
+        failDetail: failure.detail,
         probes: d.probes,
         note: d.note ?? "",
         at: now,

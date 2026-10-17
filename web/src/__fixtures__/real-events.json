@@ -1,0 +1,981 @@
+[
+{
+"type": "fleet_snapshot",
+"ts": 1792272626.046571,
+"data": {
+"nodes": [
+{
+"id": "r1-01",
+"row": 1,
+"col": 1,
+"zone": "live",
+"status": "healthy",
+"tokens_per_min": 430.0,
+"last_probe_ms": 1815.0
+},
+{
+"id": "r1-02",
+"row": 1,
+"col": 2,
+"zone": "live",
+"status": "repairing",
+"tokens_per_min": 0.0,
+"last_probe_ms": 852.5
+},
+{
+"id": "r1-03",
+"row": 1,
+"col": 3,
+"zone": "live",
+"status": "healthy",
+"tokens_per_min": 727.0,
+"last_probe_ms": 1377.4
+},
+{
+"id": "r1-04",
+"row": 1,
+"col": 4,
+"zone": "live",
+"status": "healthy",
+"tokens_per_min": 734.0,
+"last_probe_ms": 1161.6
+},
+{
+"id": "r2-01",
+"row": 2,
+"col": 1,
+"zone": "live",
+"status": "degraded",
+"tokens_per_min": 1023.0,
+"last_probe_ms": 427.9
+},
+{
+"id": "r2-02",
+"row": 2,
+"col": 2,
+"zone": "live",
+"status": "healthy",
+"tokens_per_min": 910.0,
+"last_probe_ms": 1186.5
+},
+{
+"id": "r2-03",
+"row": 2,
+"col": 3,
+"zone": "live",
+"status": "healthy",
+"tokens_per_min": 943.0,
+"last_probe_ms": 595.1
+},
+{
+"id": "r2-04",
+"row": 2,
+"col": 4,
+"zone": "live",
+"status": "healthy",
+"tokens_per_min": 336.0,
+"last_probe_ms": 359.7
+},
+{
+"id": "r3-01",
+"row": 3,
+"col": 1,
+"zone": "live",
+"status": "healthy",
+"tokens_per_min": 504.0,
+"last_probe_ms": 1366.7
+},
+{
+"id": "r3-02",
+"row": 3,
+"col": 2,
+"zone": "live",
+"status": "healthy",
+"tokens_per_min": 577.0,
+"last_probe_ms": 309.1
+},
+{
+"id": "r3-03",
+"row": 3,
+"col": 3,
+"zone": "live",
+"status": "healthy",
+"tokens_per_min": 33.0,
+"last_probe_ms": 657.3
+},
+{
+"id": "r3-04",
+"row": 3,
+"col": 4,
+"zone": "live",
+"status": "healthy",
+"tokens_per_min": 1014.0,
+"last_probe_ms": 1852.3
+},
+{
+"id": "pg-01",
+"row": 1,
+"col": 1,
+"zone": "proving",
+"status": "healthy",
+"tokens_per_min": 0.0,
+"last_probe_ms": 0.0
+},
+{
+"id": "pg-02",
+"row": 1,
+"col": 2,
+"zone": "proving",
+"status": "healthy",
+"tokens_per_min": 0.0,
+"last_probe_ms": 0.0
+},
+{
+"id": "pg-03",
+"row": 1,
+"col": 3,
+"zone": "proving",
+"status": "healthy",
+"tokens_per_min": 0.0,
+"last_probe_ms": 0.0
+},
+{
+"id": "pg-04",
+"row": 1,
+"col": 4,
+"zone": "proving",
+"status": "healthy",
+"tokens_per_min": 0.0,
+"last_probe_ms": 0.0
+}
+]
+}
+},
+{
+"type": "ledger",
+"ts": 1792272626.049728,
+"data": {
+"since": 1792267951.816011,
+"incidents_total": 105,
+"verified": 99,
+"rejected_claims": 1,
+"promotions": 7,
+"demotions": 0,
+"cost_total_usd": 1.531,
+"cost_per_incident_usd": 0.0102,
+"tokens_served": 383657,
+"cache_hit_rate": 0.297,
+"by_rung": {
+"super": {
+"incidents": 93,
+"cost_usd": 0.9949
+},
+"lightning": {
+"incidents": 6,
+"cost_usd": 0.0108
+},
+"script": {
+"incidents": 0,
+"cost_usd": 0.0
+}
+},
+"ladder": {
+"bad_key_env": "lightning",
+"config_syntax": "lightning",
+"crashed_worker": "super",
+"disk_full": "lightning",
+"forbidden_param": "lightning",
+"leaky_worker": "lightning",
+"model_id_case": "lightning",
+"port_squatter": "lightning",
+"stale_endpoint": "super",
+"starved_tokens": "super"
+}
+}
+},
+{
+"type": "tokens",
+"ts": 1792272627.24277,
+"data": {
+"node_id": "r3-03",
+"tokens": 251
+}
+},
+{
+"type": "tokens",
+"ts": 1792272628.8319721,
+"data": {
+"node_id": "r2-03",
+"tokens": 89
+}
+},
+{
+"type": "tokens",
+"ts": 1792272628.834713,
+"data": {
+"node_id": "r3-04",
+"tokens": 49
+}
+},
+{
+"type": "tokens",
+"ts": 1792272629.05988,
+"data": {
+"node_id": "r1-03",
+"tokens": 84
+}
+},
+{
+"type": "tokens",
+"ts": 1792272629.457004,
+"data": {
+"node_id": "r3-01",
+"tokens": 60
+}
+},
+{
+"type": "tokens",
+"ts": 1792272629.4582021,
+"data": {
+"node_id": "r1-01",
+"tokens": 54
+}
+},
+{
+"type": "node_status",
+"ts": 1792272629.902488,
+"data": {
+"node_id": "r2-01",
+"status": "down",
+"reason": "HTTP 404: Model not found: nvidia/nvidia-nemotron-3-nano-30b-a3b"
+}
+},
+{
+"type": "incident_opened",
+"ts": 1792272629.905826,
+"data": {
+"incident_id": 198,
+"node_id": "r2-01",
+"symptom": "probe failed: HTTP 404: Model not found: nvidia/nvidia-nemotron-3-nano-30b-a3b",
+"severity": "low"
+}
+},
+{
+"type": "node_status",
+"ts": 1792272629.906764,
+"data": {
+"node_id": "r2-01",
+"status": "repairing",
+"reason": "incident 198"
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272635.161044,
+"data": {
+"agent_id": "commander-6d260",
+"text": "r2-01: stale_endpoint, confidence 0.95 (nano)."
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272635.1665761,
+"data": {
+"agent_id": "commander-6d260",
+"text": "r2-01: stale_endpoint goes to a super responder."
+}
+},
+{
+"type": "agent_spawned",
+"ts": 1792272635.166707,
+"data": {
+"agent_id": "responder-6d26206",
+"role": "responder",
+"model": "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B",
+"rung": "super",
+"incident_id": 198,
+"node_id": "r2-01"
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272640.599385,
+"data": {
+"agent_id": "responder-6d26206",
+"text": "Check the node's current status to see if it's running, error counts, and any exit details."
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272640.607489,
+"data": {
+"agent_id": "responder-6d26201",
+"text": "Increase max_tokens from 19 to 256 to prevent token starvation when enable_thinking is true."
+}
+},
+{
+"type": "tool_call",
+"ts": 1792272640.611754,
+"data": {
+"agent_id": "responder-6d26201",
+"tool": "write_config",
+"args_summary": "yaml_text=<321 chars>",
+"ok": true,
+"result_summary": "config.yaml written (321 chars). Previous file kept as config.yaml.bak-1792272640608. Restart the node to apply it."
+}
+},
+{
+"type": "tool_call",
+"ts": 1792272640.6167948,
+"data": {
+"agent_id": "responder-6d26206",
+"tool": "node_status",
+"args_summary": "",
+"ok": true,
+"result_summary": "process: running pid=11152 port=9105 uptime=19s"
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272642.405997,
+"data": {
+"agent_id": "responder-6d26201",
+"text": "Restart the node to apply the updated config with increased max_tokens."
+}
+},
+{
+"type": "tool_call",
+"ts": 1792272643.049262,
+"data": {
+"agent_id": "responder-6d26201",
+"tool": "restart_node",
+"args_summary": "",
+"ok": true,
+"result_summary": "process: running pid=11213 port=9102 uptime=0s"
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272645.321168,
+"data": {
+"agent_id": "responder-6d26201",
+"text": "Probe the node to verify that the empty content issue is resolved after increasing max_tokens."
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272646.183121,
+"data": {
+"agent_id": "responder-6d26206",
+"text": "Read the config.yaml to see the model, upstream_base_url, and other settings. Compare with the standard."
+}
+},
+{
+"type": "tool_call",
+"ts": 1792272646.184216,
+"data": {
+"agent_id": "responder-6d26206",
+"tool": "read_config",
+"args_summary": "",
+"ok": true,
+"result_summary": "node_id: r2-01"
+}
+},
+{
+"type": "tool_call",
+"ts": 1792272646.331705,
+"data": {
+"agent_id": "responder-6d26201",
+"tool": "probe_once",
+"args_summary": "",
+"ok": true,
+"result_summary": "probe ok in 1009 ms: ok"
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272650.029587,
+"data": {
+"agent_id": "responder-6d26201",
+"text": "The probe succeeded after increasing max_tokens, confirming token starvation was the issue."
+}
+},
+{
+"type": "tool_call",
+"ts": 1792272650.030705,
+"data": {
+"agent_id": "responder-6d26201",
+"tool": "claim_fixed",
+"args_summary": "summary='Increased max_tokens from 19 to 256 in c', root_cause='Token starvation due to insufficient max'",
+"ok": true,
+"result_summary": "Claim recorded. The health check is running."
+}
+},
+{
+"type": "fix_claimed",
+"ts": 1792272650.030733,
+"data": {
+"incident_id": 196,
+"agent_id": "responder-6d26201",
+"summary": "Increased max_tokens from 19 to 256 in config.yaml"
+}
+},
+{
+"type": "agent_spawned",
+"ts": 1792272650.030785,
+"data": {
+"agent_id": "verifier-6d26207",
+"role": "verifier",
+"model": "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B",
+"rung": "ultra",
+"incident_id": 196,
+"node_id": "r1-02"
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272650.030802,
+"data": {
+"agent_id": "verifier-6d26207",
+"text": "Running the referee on r1-02: probe, 8s wait, burst of 4, probe."
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272655.01658,
+"data": {
+"agent_id": "responder-6d26206",
+"text": "Check the upstream API's available model IDs to confirm the correct case."
+}
+},
+{
+"type": "tool_call",
+"ts": 1792272655.8043,
+"data": {
+"agent_id": "responder-6d26206",
+"tool": "list_models",
+"args_summary": "",
+"ok": true,
+"result_summary": "Upstream base URL: https://api.inference.crusoecloud.com/v1"
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272664.583549,
+"data": {
+"agent_id": "verifier-6d26207",
+"text": "Quality 5/5. Root cause identified and fixed with minimal, safe change: increased max_tokens to resolve token starvation for enable_t"
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272664.583582,
+"data": {
+"agent_id": "verifier-6d26207",
+"text": "Referee: verified. all 6 probes passed"
+}
+},
+{
+"type": "verification",
+"ts": 1792272664.5845,
+"data": {
+"incident_id": 196,
+"node_id": "r1-02",
+"verdict": "verified",
+"probes": [
+{
+"name": "probe_a",
+"ok": true,
+"ms": 797.2,
+"detail": "ok"
+},
+{
+"name": "burst_1",
+"ok": true,
+"ms": 2782.2,
+"detail": "ok"
+},
+{
+"name": "burst_2",
+"ok": true,
+"ms": 1684.2,
+"detail": "ok"
+},
+{
+"name": "burst_3",
+"ok": true,
+"ms": 824.5,
+"detail": "ok"
+},
+{
+"name": "burst_4",
+"ok": true,
+"ms": 2464.3,
+"detail": "ok"
+},
+{
+"name": "probe_b",
+"ok": true,
+"ms": 1069.6,
+"detail": "ok"
+}
+],
+"quality": 5,
+"note": "all 6 probes passed. Quality 5/5: Root cause identified and fixed with minimal, safe change: increased max_tokens to resolve token starvation for enable_t"
+}
+},
+{
+"type": "agent_done",
+"ts": 1792272664.5845299,
+"data": {
+"agent_id": "verifier-6d26207"
+}
+},
+{
+"type": "agent_done",
+"ts": 1792272664.5846121,
+"data": {
+"agent_id": "responder-6d26201"
+}
+},
+{
+"type": "node_status",
+"ts": 1792272665.1391082,
+"data": {
+"node_id": "r1-02",
+"status": "healthy"
+}
+},
+{
+"type": "incident_closed",
+"ts": 1792272665.139149,
+"data": {
+"incident_id": 196,
+"node_id": "r1-02",
+"fault_class": "starved_tokens",
+"rung": "super",
+"steps": 7,
+"cost_usd": 0.011583,
+"seconds": 92.8
+}
+},
+{
+"type": "agent_spawned",
+"ts": 1792272665.1393979,
+"data": {
+"agent_id": "narrator-6d26208",
+"role": "narrator",
+"model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+"rung": "nano",
+"incident_id": 196
+}
+},
+{
+"type": "agent_spawned",
+"ts": 1792272665.142336,
+"data": {
+"agent_id": "librarian-6d26209",
+"role": "librarian",
+"model": "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B",
+"rung": "super"
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272665.142368,
+"data": {
+"agent_id": "librarian-6d26209",
+"text": "Updating the starved_tokens card from the last 3 verified fixes."
+}
+},
+{
+"type": "narration",
+"ts": 1792272665.7094882,
+"data": {
+"text": "r1-02 is healthy again: starved_tokens fixed at the super rung in 7 steps for $0.012.",
+"priority": "low"
+}
+},
+{
+"type": "agent_done",
+"ts": 1792272665.709533,
+"data": {
+"agent_id": "narrator-6d26208"
+}
+},
+{
+"type": "skill_updated",
+"ts": 1792272683.549032,
+"data": {
+"fault_class": "config_syntax",
+"version": 7,
+"summary": "Added node_status check to diagnosis to confirm unhealthy state before reading config."
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272683.549076,
+"data": {
+"agent_id": "librarian-6d26205",
+"text": "config_syntax card is now v7: Added node_status check to diagnosis to confirm unhealthy state before reading config."
+}
+},
+{
+"type": "agent_done",
+"ts": 1792272683.549193,
+"data": {
+"agent_id": "librarian-6d26205"
+}
+},
+{
+"type": "node_status",
+"ts": 1792272687.0135639,
+"data": {
+"node_id": "r3-02",
+"status": "degraded",
+"reason": "HTTP 403: Request blocked: parameter 'max_thinking_tokens' is not allowed"
+}
+},
+{
+"type": "node_status",
+"ts": 1792272691.931477,
+"data": {
+"node_id": "r3-02",
+"status": "down",
+"reason": "HTTP 403: Request blocked: parameter 'max_thinking_tokens' is not allowed"
+}
+},
+{
+"type": "incident_opened",
+"ts": 1792272691.9337778,
+"data": {
+"incident_id": 199,
+"node_id": "r3-02",
+"symptom": "probe failed: HTTP 403: Request blocked: parameter 'max_thinking_tokens' is not allowed",
+"severity": "low"
+}
+},
+{
+"type": "node_status",
+"ts": 1792272691.9343412,
+"data": {
+"node_id": "r3-02",
+"status": "repairing",
+"reason": "incident 199"
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272692.881902,
+"data": {
+"agent_id": "commander-6d260",
+"text": "r3-02: forbidden_param, confidence 0.96 (nano)."
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272692.8848178,
+"data": {
+"agent_id": "commander-6d260",
+"text": "r3-02: forbidden_param goes to a lightning responder."
+}
+},
+{
+"type": "agent_spawned",
+"ts": 1792272692.8848908,
+"data": {
+"agent_id": "responder-6d26210",
+"role": "responder",
+"model": "nvidia/Nemotron-3.5-Lightning-30B-A3B",
+"rung": "lightning",
+"incident_id": 199,
+"node_id": "r3-02"
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272692.916147,
+"data": {
+"agent_id": "responder-6d26206",
+"text": "The model ID in config does not match the case of the model ID served by the upstream API. The correct model ID is 'nvidia/NVIDIA-Nemotro..."
+}
+},
+{
+"type": "tool_call",
+"ts": 1792272692.9192781,
+"data": {
+"agent_id": "responder-6d26206",
+"tool": "write_config",
+"args_summary": "yaml_text=<333 chars>",
+"ok": true,
+"result_summary": "config.yaml written (333 chars). Previous file kept as config.yaml.bak-1792272692917. Restart the node to apply it."
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272694.530391,
+"data": {
+"agent_id": "responder-6d26206",
+"text": "Restart the node to apply the corrected model ID in config.yaml."
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272694.8852658,
+"data": {
+"agent_id": "responder-6d26210",
+"text": "Check node status to confirm 403 errors and process state."
+}
+},
+{
+"type": "tool_call",
+"ts": 1792272694.892968,
+"data": {
+"agent_id": "responder-6d26210",
+"tool": "node_status",
+"args_summary": "",
+"ok": true,
+"result_summary": "process: running pid=11310 port=9110 uptime=12s"
+}
+},
+{
+"type": "tool_call",
+"ts": 1792272695.065066,
+"data": {
+"agent_id": "responder-6d26206",
+"tool": "restart_node",
+"args_summary": "",
+"ok": true,
+"result_summary": "process: running pid=11339 port=9105 uptime=0s"
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272695.651232,
+"data": {
+"agent_id": "responder-6d26210",
+"text": "Read the config to find the forbidden parameter max_thinking_tokens."
+}
+},
+{
+"type": "tool_call",
+"ts": 1792272695.6524749,
+"data": {
+"agent_id": "responder-6d26210",
+"tool": "read_config",
+"args_summary": "rel=True",
+"ok": false,
+"result_summary": "a relative path is required"
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272696.7389219,
+"data": {
+"agent_id": "responder-6d26210",
+"text": "Read config.yaml to examine the configuration for forbidden parameters."
+}
+},
+{
+"type": "tool_call",
+"ts": 1792272696.741724,
+"data": {
+"agent_id": "responder-6d26210",
+"tool": "read_config",
+"args_summary": "rel='config.yaml'",
+"ok": true,
+"result_summary": "node_id: r3-02"
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272697.588981,
+"data": {
+"agent_id": "responder-6d26206",
+"text": "Probe the node to verify that the model is now found and the request succeeds."
+}
+},
+{
+"type": "tool_call",
+"ts": 1792272698.760797,
+"data": {
+"agent_id": "responder-6d26206",
+"tool": "probe_once",
+"args_summary": "",
+"ok": true,
+"result_summary": "probe ok in 1171 ms: ok"
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272698.8165948,
+"data": {
+"agent_id": "responder-6d26210",
+"text": "Remove the forbidden parameter max_thinking_tokens from extra_body in config.yaml."
+}
+},
+{
+"type": "tool_call",
+"ts": 1792272698.821929,
+"data": {
+"agent_id": "responder-6d26210",
+"tool": "write_config",
+"args_summary": "yaml_text=<335 chars>",
+"ok": true,
+"result_summary": "config.yaml written (335 chars). Previous file kept as config.yaml.bak-1792272698818. Restart the node to apply it."
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272699.557744,
+"data": {
+"agent_id": "responder-6d26210",
+"text": "Restart the node to apply the config change."
+}
+},
+{
+"type": "tool_call",
+"ts": 1792272700.07176,
+"data": {
+"agent_id": "responder-6d26210",
+"tool": "restart_node",
+"args_summary": "",
+"ok": true,
+"result_summary": "process: running pid=11351 port=9110 uptime=0s"
+}
+},
+{
+"type": "agent_thought",
+"ts": 1792272700.6602082,
+"data": {
+"agent_id": "responder-6d26210",
+"text": "Probe the node to verify the 403 error is resolved."
+}
+},
+{
+"type": "verification",
+"ts": 1792268685.325512,
+"data": {
+"incident_id": 35,
+"node_id": "r1-03",
+"note": "5 of 6 probes failed (burst_1, burst_2, burst_3, burst_4, probe_b): connection refused",
+"probes": [
+{
+"detail": "ok",
+"ms": 635.9,
+"name": "probe_a",
+"ok": true
+},
+{
+"detail": "connection refused",
+"ms": 12.8,
+"name": "burst_1",
+"ok": false
+},
+{
+"detail": "connection refused",
+"ms": 4.9,
+"name": "burst_2",
+"ok": false
+},
+{
+"detail": "connection refused",
+"ms": 3.7,
+"name": "burst_3",
+"ok": false
+},
+{
+"detail": "connection refused",
+"ms": 2.0,
+"name": "burst_4",
+"ok": false
+},
+{
+"detail": "connection refused",
+"ms": 1.1,
+"name": "probe_b",
+"ok": false
+}
+],
+"verdict": "rejected"
+}
+},
+{
+"type": "fix_claimed",
+"ts": 1792268676.641112,
+"data": {
+"agent_id": "responder-611a17",
+"incident_id": 35,
+"summary": "Changed node port from 9103 to 9200 to resolve address-in-use conflict."
+}
+},
+{
+"type": "ladder_update",
+"ts": 1792272203.488715,
+"data": {
+"direction": "promote",
+"evidence": {
+"mean_cost_usd": 0.002686,
+"passed": 5,
+"total": 5
+},
+"fault_class": "forbidden_param",
+"from_rung": "super",
+"to_rung": "lightning"
+}
+},
+{
+"type": "escalation",
+"ts": 1792272370.476876,
+"data": {
+"from_rung": "lightning",
+"incident_id": 176,
+"reason": "the model did not return a valid action after a re-prompt",
+"to_rung": "super"
+}
+},
+{
+"type": "escalation",
+"ts": 1792272460.426522,
+"data": {
+"from_rung": "lightning",
+"incident_id": 178,
+"reason": "the model did not return a valid action after a re-prompt",
+"to_rung": "super"
+}
+},
+{
+"type": "agent_spawned",
+"ts": 1792272831.5566561,
+"data": {
+"agent_id": "watchdog-6d26228",
+"incident_id": 201,
+"model": "rules",
+"node_id": "r2-01",
+"role": "watchdog",
+"rung": "script"
+}
+},
+{
+"type": "agent_spawned",
+"ts": 1792272799.748576,
+"data": {
+"agent_id": "promoter-6d26221",
+"model": "rules",
+"role": "promoter",
+"rung": "script"
+}
+},
+{
+"type": "agent_spawned",
+"ts": 1792272843.197549,
+"data": {
+"agent_id": "responder-6d26231",
+"incident_id": 207,
+"model": "nvidia/Nemotron-3.5-Lightning-30B-A3B",
+"node_id": "pg-03",
+"role": "responder",
+"rung": "lightning"
+}
+}
+]
