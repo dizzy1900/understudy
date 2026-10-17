@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import math
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -10,7 +11,7 @@ import anyio
 from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from config import settings
 from understudy import history, ledger
@@ -25,17 +26,45 @@ WEB_DIST = settings.ROOT / "web" / "dist"
 HISTORY_LIMIT = 2000
 
 
+MAX_ROW = max(spec.row for spec in settings.NODES)
+KNOWN_FAULT_CLASSES = frozenset(settings.TRAINING_FAULT_CLASSES + settings.HELDOUT_FAULT_CLASSES)
+
+
 class ChaosRequest(BaseModel):
-    command: str
+    command: str = Field(min_length=1, max_length=500)
 
 
 class InjectRequest(BaseModel):
-    node_id: str
-    fault_class: str
+    node_id: str = Field(min_length=1, max_length=32, pattern=r"^[a-z0-9-]+$")
+    fault_class: str = Field(min_length=1, max_length=64)
 
 
 class StormRequest(BaseModel):
     rows: list[int] | int | None = None
+
+
+def clamp_since(since: float) -> float:
+    """A history cursor: non-finite or negative values mean "from the start"."""
+    return since if math.isfinite(since) and since > 0 else 0.0
+
+
+def storm_rows(rows: list[int] | int | None) -> list[int] | int | None:
+    """Rejects rows outside the hall instead of letting them reach the fault picker."""
+    if rows is None:
+        return None
+    values = [rows] if isinstance(rows, int) else rows
+    if not values or len(values) > MAX_ROW or any(not 1 <= r <= MAX_ROW for r in values):
+        raise HTTPException(422, f"rows must be between 1 and {MAX_ROW}")
+    return rows
+
+
+def known_classes(classes: list[str] | None) -> list[str] | None:
+    if classes is None:
+        return None
+    unknown = sorted(set(classes) - KNOWN_FAULT_CLASSES)
+    if unknown:
+        raise HTTPException(422, f"unknown fault class: {', '.join(unknown)[:200]}")
+    return classes
 
 
 def _fail(exc: ChaosError) -> HTTPException:
@@ -47,14 +76,14 @@ def create_app(orch: "Orchestrator", web_dist: Path | None = WEB_DIST) -> FastAP
     app.state.orch = orch
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+        allow_origins=settings.cors_origins(),
         allow_methods=["*"],
         allow_headers=["*"],
     )
 
     @app.get("/healthz")
     async def healthz() -> dict:
-        return {"ok": True}
+        return {"ok": True, "backend": "live", "db": settings.DB_PATH.is_file()}
 
     @app.websocket("/ws")
     async def ws(sock: WebSocket) -> None:
@@ -92,6 +121,7 @@ def create_app(orch: "Orchestrator", web_dist: Path | None = WEB_DIST) -> FastAP
 
     @app.get("/api/history")
     async def get_history(since: float = 0.0) -> dict:
+        since = clamp_since(since)
         if since > 0:
             rows = await orch.db.events_since(since, HISTORY_LIMIT)
         else:
@@ -122,7 +152,7 @@ def create_app(orch: "Orchestrator", web_dist: Path | None = WEB_DIST) -> FastAP
     @app.post("/api/storm")
     async def post_storm(body: StormRequest | None = None) -> dict:
         try:
-            return {"injected": await orch.chaos.storm(body.rows if body else None)}
+            return {"injected": await orch.chaos.storm(storm_rows(body.rows) if body else None)}
         except ChaosError as exc:
             raise _fail(exc) from None
 
@@ -149,9 +179,10 @@ def create_app(orch: "Orchestrator", web_dist: Path | None = WEB_DIST) -> FastAP
 
     @app.post("/api/promote/run")
     async def post_promote(fault_class: list[str] | None = Query(None)) -> dict[str, Any]:
+        classes = known_classes(fault_class)
         if orch.promoter is None:
             return {"started": False, "reason": "the promoter is not running"}
-        return await orch.promoter.run_now(fault_class)
+        return await orch.promoter.run_now(classes)
 
     @app.post("/api/demo/reset")
     async def post_reset() -> dict:

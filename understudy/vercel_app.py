@@ -7,12 +7,16 @@ snapshot of data/understudy.db when one is bundled, and idle payloads otherwise.
 from __future__ import annotations
 
 import json
+import logging
+import math
 import os
+import sqlite3
 import time
 from pathlib import Path
 
 import aiosqlite
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from config import settings
@@ -22,15 +26,23 @@ from understudy.events import Ledger
 
 DB_FILE = Path(os.environ.get("UNDERSTUDY_DB", settings.DB_PATH))
 HISTORY_LIMIT = 2000
+# A missing, corrupt, locked or half-written snapshot must degrade to empty payloads, never a 500.
+READ_ERRORS = (aiosqlite.Error, sqlite3.Error, OSError, ValueError, KeyError, TypeError)
 
+log = logging.getLogger("understudy.vercel")
 app = FastAPI(title="understudy (read-only)")
+app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins(), allow_methods=["GET"], allow_headers=["*"])
 
 
 async def _open() -> Database | None:
     if not DB_FILE.is_file():
         return None
-    # immutable=1: the bundle is read-only and a WAL file cannot be created next to it.
-    conn = await aiosqlite.connect(f"file:{DB_FILE}?immutable=1", uri=True)
+    try:
+        # immutable=1: the bundle is read-only and a WAL file cannot be created next to it.
+        conn = await aiosqlite.connect(f"file:{DB_FILE}?immutable=1", uri=True, timeout=2.0)
+    except READ_ERRORS as exc:
+        log.warning("snapshot unreadable: %s", type(exc).__name__)
+        return None
     conn.row_factory = aiosqlite.Row
     return Database(conn)
 
@@ -58,15 +70,28 @@ async def _read(fn, idle):
         return idle
     try:
         return await fn(db)
-    except aiosqlite.Error:
+    except READ_ERRORS as exc:
+        log.warning("snapshot read failed: %s", type(exc).__name__)
         return idle
     finally:
-        await db.close()
+        try:
+            await db.close()
+        except READ_ERRORS:
+            pass
+
+
+async def _db_readable() -> bool:
+    async def probe(db: Database) -> bool:
+        await db.fetchall("SELECT 1 FROM events LIMIT 1")
+        return True
+
+    return await _read(probe, False)
 
 
 @app.get("/healthz")
 async def healthz() -> dict:
-    return {"ok": True, "backend": "read-only", "db": DB_FILE.is_file()}
+    present = DB_FILE.is_file()
+    return {"ok": True, "backend": "read-only", "db": present, "db_readable": present and await _db_readable(), "live_stream": False}
 
 
 @app.get("/api/ledger")
@@ -98,6 +123,8 @@ async def get_skills() -> list[dict]:
 
 @app.get("/api/history")
 async def get_history(since: float = 0.0) -> dict:
+    since = since if math.isfinite(since) and since > 0 else 0.0
+
     async def run(db: Database) -> dict:
         if since > 0:
             rows = await db.events_since(since, HISTORY_LIMIT)

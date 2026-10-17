@@ -11,6 +11,12 @@ const SETTLE_MS = 600;
 const TOAST_MS = 7000;
 const PARTICLES = 34;
 
+const RUNG_NOTE: Record<Rung, string> = {
+  super: "frontier model",
+  lightning: "small model",
+  script: "compiled",
+};
+
 const TRAINING_INDEX = new Map<string, number>(TRAINING_CLASSES.map((name, i) => [name, i]));
 const HELDOUT = new Set<string>(HELDOUT_CLASSES);
 
@@ -76,6 +82,12 @@ export default function Ladder() {
   const particles = useRef<Particle[]>([]);
   const raf = useRef(0);
   const [toast, setToast] = useState<Toast | null>(null);
+  const [collapsed, setCollapsed] = useState(() => typeof window !== "undefined" && window.innerWidth < 960);
+
+  // Pills have no layout while collapsed, so positions are re-baselined instead of animated on toggle.
+  useLayoutEffect(() => {
+    lastSignature.current = null;
+  }, [collapsed]);
 
   const later = (fn: () => void, ms: number) => {
     timers.current.push(window.setTimeout(fn, ms));
@@ -235,13 +247,42 @@ export default function Ladder() {
   const counts = RUNGS.map((rung) => names.filter((n) => rungOf(ladder, n) === rung).length);
 
   return (
-    <div className="ladder panel interactive" ref={panelRef} data-replay={replaying || undefined}>
+    <div
+      className="ladder panel interactive"
+      ref={panelRef}
+      data-replay={replaying || undefined}
+      data-collapsed={collapsed || undefined}
+    >
       <canvas className="burst" ref={canvasRef} />
-      <div className="eyebrow ladder-title">Skill ladder</div>
+      <div className="ladder-head">
+        <div className="eyebrow ladder-title">
+          Skill ladder
+          <span className="ladder-sum" aria-label="classes per rung">
+            {RUNGS.map((rung, i) => (
+              <b key={rung} style={{ "--c": RUNG_COLORS[rung] } as React.CSSProperties}>
+                {counts[i]}
+              </b>
+            ))}
+          </span>
+        </div>
+        <button
+          type="button"
+          className="icon-btn ladder-toggle"
+          onClick={() => setCollapsed((c) => !c)}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? "Expand skill ladder" : "Collapse skill ladder"}
+        >
+          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+            <path d="M3 6l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+        </button>
+      </div>
+      <p className="ladder-hint">Each fault class climbs as its fix is verified. Click a pill for its skill card.</p>
       {RUNGS.map((rung, i) => (
         <section className="rung" key={rung} data-rung={rung} style={{ "--c": RUNG_COLORS[rung] } as React.CSSProperties}>
           <header className="rung-head">
             <h2>{rung.toUpperCase()}</h2>
+            <span className="rung-note">{RUNG_NOTE[rung]}</span>
             <span className="rung-count">{counts[i]}</span>
             {toast && toast.rung === rung && (
               <div className="toast" key={toast.key} data-dir={toast.direction}>

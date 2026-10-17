@@ -18,6 +18,19 @@ API_KEY_ENV = "CRUSOE_API_KEY"
 BUDGET_USD = float(os.environ.get("BUDGET_USD", "20"))
 DEMO_MODE = os.environ.get("DEMO_MODE", "0") == "1"
 
+DEV_CORS_ORIGINS = ("http://localhost:5173", "http://127.0.0.1:5173")
+
+
+def cors_origins(raw: str | None = None) -> list[str]:
+    """Dev origins plus UNDERSTUDY_CORS_ORIGINS (comma separated). "*" is ignored: credentials stay origin-bound."""
+    raw = os.environ.get("UNDERSTUDY_CORS_ORIGINS", "") if raw is None else raw
+    extra = [o.strip().rstrip("/") for o in raw.split(",")]
+    origins = list(DEV_CORS_ORIGINS)
+    for origin in extra:
+        if origin and origin != "*" and origin.startswith(("http://", "https://")) and origin not in origins:
+            origins.append(origin)
+    return origins
+
 DATA_DIR = ROOT / "data"
 LOG_DIR = DATA_DIR / "logs"
 DB_PATH = DATA_DIR / "understudy.db"

@@ -124,6 +124,9 @@ export interface StreamState {
   muted: boolean;
   selectedClass: string | null;
   briefing: string | null;
+  /** True while the in-browser demo simulator, not a live backend, feeds the stream. */
+  demo: boolean;
+  setDemo: (demo: boolean) => void;
   setConnected: (connected: boolean) => void;
   handle: (event: StreamEvent) => void;
   /** Applies recent history without publishing it, so a page opened mid-incident shows the agents already at work. */
@@ -153,7 +156,8 @@ function firstSight(event: StreamEvent): boolean {
 export function resetStream(): void {
   seen.clear();
   seenOrder.length = 0;
-  useStream.setState(useStream.getInitialState(), true);
+  const { demo } = useStream.getState();
+  useStream.setState({ ...useStream.getInitialState(), demo }, true);
 }
 
 function emptyLadder(): Record<string, Rung> {
@@ -212,7 +216,9 @@ export const useStream = create<StreamState>((set, get) => ({
   muted: false,
   selectedClass: null,
   briefing: null,
+  demo: false,
 
+  setDemo: (demo) => set({ demo }),
   setConnected: (connected) =>
     set((state) => ({ connected, everConnected: state.everConnected || connected })),
 

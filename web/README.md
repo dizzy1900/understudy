@@ -18,6 +18,14 @@ VITE_API_BASE=http://localhost:8765 npm run dev
 
 `VITE_WS_URL` overrides the WebSocket URL when the stream lives on a different host than the REST API.
 
+## Demo mode
+
+The hosted page cannot reach a live fleet (Vercel cannot hold the orchestrator or a WebSocket), so the control room falls back to an in-browser simulated incident stream. Numbers in demo mode are synthetic and the page says so.
+
+- Demo mode starts automatically when no live backend answers within about 4 seconds.
+- `?demo=1` forces demo mode even when a backend is reachable.
+- `?live=1` disables the fallback and waits for the live backend.
+
 ## Keys
 
 | key | action |
