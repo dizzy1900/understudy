@@ -517,7 +517,7 @@ kbd {
   text-wrap: balance;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 4;
   overflow: hidden;
   padding: 8px 22px 10px;
   border-radius: 12px;
