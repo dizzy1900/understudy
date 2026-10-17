@@ -3,6 +3,7 @@ import { Bloom, EffectComposer, Vignette } from "@react-three/postprocessing";
 import { useEffect } from "react";
 import * as THREE from "three";
 
+import BubbleLayout from "./BubbleLayout";
 import CameraRig, { CAMERA_POSITION } from "./CameraRig";
 import { FarWall, Floor, Lights } from "./Floor";
 import Counter from "./Counter";
@@ -40,6 +41,7 @@ export default function Scene() {
         <Desk />
         <Drones />
         <Stamps />
+        <BubbleLayout />
         <CameraRig />
         <EffectComposer multisampling={0}>
           <Bloom mipmapBlur intensity={0.8} luminanceThreshold={0.85} luminanceSmoothing={0.25} radius={0.75} />

@@ -12,7 +12,6 @@ import { AGENT_LINGER_MS, useStream } from "../store";
 import { rungColor } from "../theme";
 import type { AgentRole, AgentRung } from "../types";
 import Bubble from "./Bubble";
-import type { BubbleAlign } from "./Bubble";
 import { clamp, geo, glowTex, hash01, smooth, useOwned } from "./shared";
 
 const SIZE: Record<AgentRung, number> = { super: 0.42, ultra: 0.34, lightning: 0.3, script: 0.26, nano: 0.2 };
@@ -255,7 +254,6 @@ function Drone({ id, role, rung, nodeId, slot, count }: DroneProps) {
     }
   });
 
-  const align: BubbleAlign = count > 1 ? (slot % 2 === 0 ? "left" : "right") : "center";
   const core = size * 0.95;
 
   return (
@@ -270,8 +268,6 @@ function Drone({ id, role, rung, nodeId, slot, count }: DroneProps) {
         <Bubble
           agentId={id}
           height={core + 0.35}
-          lift={satellite ? 14 : 18 + Math.floor(slot / 2) * 84}
-          align={align}
           gate={gate}
           showForMs={satellite ? SATELLITE_BUBBLE_MS : undefined}
         />

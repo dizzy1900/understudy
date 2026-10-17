@@ -127,7 +127,7 @@ export default function Desk() {
           <mesh ref={ringA} geometry={geo.torus()} material={ringMat} scale={ORB_R * 1.9} rotation={[Math.PI / 2, 0, 0]} />
           <mesh ref={ringB} geometry={geo.torus()} material={ringMat} scale={ORB_R * 2.5} rotation={[0.3, 0.9, 0]} />
         </group>
-        {commanderId && <Bubble agentId={commanderId} height={0.75} lift={26} showForMs={16000} />}
+        {commanderId && <Bubble agentId={commanderId} height={0.75} showForMs={16000} />}
       </group>
     </group>
   );
