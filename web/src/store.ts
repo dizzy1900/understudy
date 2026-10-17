@@ -28,7 +28,12 @@ export const useStream = create<StreamState>((set) => ({
   setConnected: (connected) => set({ connected }),
 }));
 
-const WS_URL = import.meta.env.VITE_WS_URL ?? "ws://127.0.0.1:8000/ws";
+function defaultWsUrl(): string {
+  const scheme = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${scheme}//${window.location.host}/ws`;
+}
+
+const WS_URL: string = import.meta.env.VITE_WS_URL ?? defaultWsUrl();
 
 export function connect(): () => void {
   let socket: WebSocket | null = null;

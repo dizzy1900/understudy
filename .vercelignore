@@ -1,0 +1,10 @@
+data/
+fleet/nodes/
+web/node_modules/
+web/dist/
+.env
+.venv/
+.git/
+.pytest_cache/
+__pycache__/
+tests/
