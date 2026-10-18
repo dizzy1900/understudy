@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 
+import { toggleDemoPause } from "../demo";
 import { useStream } from "../store";
 import { cancelBack, imBack } from "../voice/flow";
 import { sendStorm, toggleFullscreen, toggleReplay, useUi, voiceStart, voiceStop } from "./actions";
@@ -45,6 +46,9 @@ export function useHotkeys(): void {
           break;
         case "m":
           useStream.getState().toggleMuted();
+          break;
+        case "p":
+          toggleDemoPause();
           break;
         default:
           break;

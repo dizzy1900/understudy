@@ -7,13 +7,45 @@ import type { AgentRole, AgentRung, Ledger, LadderLogEntry, NodeInfo, NodeState,
 import { FAULTS, HIGH_SEVERITY, MODEL_IDS, TRAINING_FAULT_CLASSES, type DemoFault } from "./faults";
 
 const RUNGS: Rung[] = ["super", "lightning", "script"];
-const MAX_DOWN = 6;
-const REJECT_EVERY_S = 60;
-const FIRST_REJECT_S = 28;
-const STORM_EVERY_S = 240;
-const FIRST_STORM_S = 75;
-const PROMOTER_FIRST_S = 18;
-const PROMOTER_EVERY_S = 40;
+/** When the story beats happen, in story seconds. */
+export interface Pacing {
+  maxDown: number;
+  rejectEvery: number;
+  firstReject: number;
+  stormEvery: number;
+  firstStorm: number;
+  promoterFirst: number;
+  promoterEvery: number;
+  /** Seconds between new incidents, as [min, max]. */
+  arrival: [number, number];
+}
+
+/** The original pace: a lot happens in the first 30 seconds. Used by ?pace=fast and the tests. */
+export const FAST_PACING: Pacing = {
+  maxDown: 6,
+  rejectEvery: 60,
+  firstReject: 28,
+  stormEvery: 240,
+  firstStorm: 75,
+  promoterFirst: 18,
+  promoterEvery: 40,
+  arrival: [8, 18],
+};
+
+/**
+ * A live walkthrough of about three minutes, at real time: one incident at a time to start with, a rejected false
+ * fix near 0:45, the first promotion near 1:20, and no automatic storm before 3:20 so the presenter can press S.
+ */
+export const PRESENTER_PACING: Pacing = {
+  maxDown: 3,
+  rejectEvery: 90,
+  firstReject: 40,
+  stormEvery: 300,
+  firstStorm: 200,
+  promoterFirst: 70,
+  promoterEvery: 75,
+  arrival: [14, 24],
+};
 const PROVING_TRIALS = 5;
 const HISTORY_LIMIT = 3000;
 const COST_RANGE: Record<Rung, [number, number]> = {
@@ -90,15 +122,17 @@ export class DemoSim {
   private rungStarted: Record<Rung, number> = { super: 0, lightning: 0, script: 0 };
   private promoterCycles = 0;
   private promoting = false;
-  private nextRejection = FIRST_REJECT_S;
+  private nextRejection = 0;
   private away: { since: number; counts: Counts; cost: number } | null = null;
 
   constructor(
     private readonly sink: (event: StreamEvent) => void,
     seed = 7,
     epoch = Date.now() / 1000,
+    private readonly pacing: Pacing = FAST_PACING,
   ) {
     this.rand = mulberry32(seed);
+    this.nextRejection = pacing.firstReject;
     this.epoch = epoch;
     for (let row = 1; row <= 3; row++)
       for (let col = 1; col <= 4; col++) this.addNode(`r${row}-0${col}`, row, col, "live");
@@ -311,24 +345,24 @@ export class DemoSim {
 
   private *scenario(): Proc {
     yield 1;
-    let lastStorm = this.t - (STORM_EVERY_S - FIRST_STORM_S);
+    let lastStorm = this.t - (this.pacing.stormEvery - this.pacing.firstStorm);
     for (;;) {
-      if (this.t - lastStorm >= STORM_EVERY_S) {
+      if (this.t - lastStorm >= this.pacing.stormEvery) {
         lastStorm = this.t;
         this.storm(null);
-      } else if (this.downCount() < MAX_DOWN) {
+      } else if (this.downCount() < this.pacing.maxDown) {
         const free = this.freeLiveNodes();
         if (free.length) this.inject(this.choice(free), this.choice(TRAINING_FAULT_CLASSES));
       }
-      yield this.uniform(8, 18);
+      yield this.uniform(...this.pacing.arrival);
     }
   }
 
   private *promoter(): Proc {
-    yield PROMOTER_FIRST_S;
+    yield this.pacing.promoterFirst;
     for (;;) {
       if (!this.promoting) yield* this.promoteCycle();
-      yield PROMOTER_EVERY_S;
+      yield this.pacing.promoterEvery;
     }
   }
 
@@ -359,7 +393,7 @@ export class DemoSim {
 
   storm(rows: number[] | null): { node_id: string; fault_class: string }[] {
     const candidates = this.freeLiveNodes(rows);
-    const room = MAX_DOWN - this.downCount();
+    const room = Math.max(FAST_PACING.maxDown, this.pacing.maxDown) - this.downCount();
     const count = Math.min(this.randint(3, 6), candidates.length, Math.max(room, 0));
     const pool = [...candidates];
     const injected: { node_id: string; fault_class: string }[] = [];
@@ -387,7 +421,7 @@ export class DemoSim {
 
   private takeRejection(): boolean {
     if (this.t < this.nextRejection) return false;
-    this.nextRejection = this.t + REJECT_EVERY_S;
+    this.nextRejection = this.t + this.pacing.rejectEvery;
     return true;
   }
 

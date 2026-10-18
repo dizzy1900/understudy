@@ -109,6 +109,9 @@ export default function Intro() {
           <div>
             <kbd>F</kbd> Fullscreen
           </div>
+          <div>
+            <kbd>P</kbd> Pause or resume the demo
+          </div>
         </div>
         <div className="intro-actions">
           <span className="hint">Click any ladder pill to read the skill card behind it.</span>

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { on } from "../bus";
 import { resetStream, useStream } from "../store";
 import type { StreamEvent } from "../types";
-import { DemoSim } from "./sim";
+import { DemoSim, PRESENTER_PACING } from "./sim";
 
 function run(seconds: number, seed = 7): { sim: DemoSim; events: StreamEvent[] } {
   const events: StreamEvent[] = [];
@@ -65,5 +65,44 @@ describe("demo simulator", () => {
     const back = sim.comeBack();
     expect(back.briefing).toMatch(/While you were away: \d+ incidents opened/);
     expect(sim.history.some((e) => e.type === "ledger")).toBe(true);
+  });
+});
+
+describe("presenter pacing", () => {
+  beforeEach(resetStream);
+
+  it("spaces the story out over about three minutes", () => {
+    const beats: { type: string; t: number; data: Record<string, unknown> }[] = [];
+    const sim = new DemoSim(
+      (event) => {
+        beats.push({ type: event.type, t: sim.t, data: event.data as Record<string, unknown> });
+        useStream.getState().handle(event);
+      },
+      7,
+      0,
+      PRESENTER_PACING,
+    );
+    sim.start();
+    let maxDown = 0;
+    for (let t = 0; t < 190; t += 0.25) {
+      sim.advance(0.25);
+      maxDown = Math.max(maxDown, Object.values(sim.nodes).filter((n) => n.zone === "live" && n.busy).length);
+    }
+    const first = (pred: (b: (typeof beats)[number]) => boolean) => beats.find(pred)?.t ?? Infinity;
+    const rejected = first((b) => b.type === "verification" && b.data.verdict === "rejected");
+    const promoted = first((b) => b.type === "ladder_update" && b.data.direction === "promote");
+    const storm = first((b) => b.type === "narration" && String(b.data.text).startsWith("Storm"));
+
+    expect(first((b) => b.type === "incident_opened")).toBeLessThan(15);
+    expect(rejected).toBeGreaterThan(35);
+    expect(rejected).toBeLessThan(80);
+    expect(promoted).toBeGreaterThan(65);
+    expect(promoted).toBeLessThan(120);
+    expect(storm).toBe(Infinity);
+    expect(maxDown).toBeLessThanOrEqual(PRESENTER_PACING.maxDown);
+    console.log(`presenter beats: rejected ${rejected.toFixed(0)}s, promoted ${promoted.toFixed(0)}s, max busy ${maxDown}`);
+
+    // The presenter's storm still breaks several nodes, beyond the calm cap.
+    expect(sim.storm(null).length).toBeGreaterThanOrEqual(2);
   });
 });
