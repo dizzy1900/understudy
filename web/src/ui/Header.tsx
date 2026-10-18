@@ -40,10 +40,12 @@ export default function Header() {
       </div>
       <p className="subtitle">Autonomous on-call agents that keep an inference fleet healthy, and get cheaper every shift.</p>
       <div className="hdr-row">
-        <span className="conn" data-state={state} title={demo && !connected ? "No live backend reachable; running a simulated shift in the browser" : undefined}>
-          <i className="conn-dot" />
-          {LABEL[state]}
-        </span>
+        {(state === "live" || state === "reconnecting") && (
+          <span className="conn" data-state={state}>
+            <i className="conn-dot" />
+            {LABEL[state]}
+          </span>
+        )}
         {muted && <span className="tag tag-warn">muted</span>}
         <button type="button" className="chip interactive" onClick={toggleMuted} aria-pressed={muted}>
           <kbd>M</kbd>

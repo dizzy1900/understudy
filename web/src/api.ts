@@ -131,7 +131,7 @@ export const api = {
   voiceStatus: () =>
     viaDemo(
       () => request<VoiceStatus>("/api/voice/status"),
-      () => ({ available: false, path: "browser" as const, reason: "voice runs against the live backend only" }),
+      () => ({ available: false, path: "browser" as const, reason: "browser speech recognition" }),
     ),
   voice: (audio: Blob) =>
     request<{ transcript: string }>("/api/voice", {

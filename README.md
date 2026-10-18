@@ -81,7 +81,7 @@ flowchart LR
 - **Sandboxed scripts.** Compiled fix scripts are checked statically (only `re`, `json` and `yaml` imports, no dynamic code), then run in a separate `python -I` process with an empty environment, a 30 s limit and at most 40 tool calls, through the same jailed tool layer.
 - **Held-out evaluation.** Promotions are decided on held-out seeds on separate proving nodes, and proving incidents are excluded from the ledger, the history and the report.
 - **Hard budget cap.** Every model call checks `BUDGET_USD` first and stops when the recorded spend reaches it. Model calls have a 120 s timeout (10 s to connect) and bounded retries.
-- **No fabricated numbers.** Every number in the live UI is computed from the ledger. Demo mode on the hosted page is clearly synthetic.
+- **No fabricated numbers.** Every number in the live UI is computed from the ledger. The hosted page runs a simulated fleet in the browser (Vercel cannot host the long-lived fleet); its numbers are synthetic, and this README is where that is stated.
 
 ## Run it locally
 

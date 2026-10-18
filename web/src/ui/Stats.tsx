@@ -3,7 +3,7 @@ import CountUp from "./CountUp";
 import { useReplay } from "./replayStore";
 
 const whole = (v: number) => Math.round(v).toLocaleString("en-US");
-const dollars = (v: number) => `$${v.toFixed(4)}`;
+const dollars = (v: number) => (v > 0 ? `$${v.toFixed(4)}` : "—");
 const percent = (v: number) => `${(v * 100).toFixed(1)}%`;
 
 function finite(value: unknown): number | null {

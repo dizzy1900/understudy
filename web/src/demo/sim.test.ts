@@ -102,7 +102,16 @@ describe("presenter pacing", () => {
     expect(maxDown).toBeLessThanOrEqual(PRESENTER_PACING.maxDown);
     console.log(`presenter beats: rejected ${rejected.toFixed(0)}s, promoted ${promoted.toFixed(0)}s, max busy ${maxDown}`);
 
-    // The presenter's storm still breaks several nodes, beyond the calm cap.
-    expect(sim.storm(null).length).toBeGreaterThanOrEqual(2);
+    // The presenter's storm breaks three nodes, beyond the calm cap, and triage takes them one at a time.
+    while (Object.values(sim.nodes).some((n) => n.zone === "live" && n.busy)) sim.advance(0.25);
+    const mark = beats.length;
+    const hit = sim.storm(null).map((i) => i.node_id);
+    expect(hit).toHaveLength(3);
+    for (let t = 0; t < 40; t += 0.25) sim.advance(0.25);
+    const triageAt = hit.map((id) => beats.slice(mark).find((b) => b.type === "agent_spawned" && b.data.role === "triage" && b.data.node_id === id)?.t ?? Infinity);
+    triageAt.sort((x, y) => x - y);
+    expect(triageAt[2]).toBeLessThan(Infinity);
+    expect(triageAt[1] - triageAt[0]).toBeGreaterThanOrEqual(6);
+    expect(triageAt[2] - triageAt[1]).toBeGreaterThanOrEqual(6);
   });
 });

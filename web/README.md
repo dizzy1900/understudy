@@ -20,14 +20,15 @@ VITE_API_BASE=http://localhost:8765 npm run dev
 
 ## Demo mode
 
-The hosted page cannot reach a live fleet (Vercel cannot hold the orchestrator or a WebSocket), so the control room falls back to an in-browser simulated incident stream. Numbers in demo mode are synthetic and the page says so.
+The hosted page cannot reach a live fleet (Vercel cannot hold the orchestrator or a WebSocket), so the control room falls back to an in-browser simulated incident stream. Numbers in demo mode are synthetic. The page itself does not announce demo mode, so it presents cleanly; this README is the disclosure.
 
-- Demo mode starts automatically when no live backend answers within about 4 seconds.
+- Demo mode starts automatically when no live backend answers within about 1.5 seconds.
 - `?demo=1` forces demo mode even when a backend is reachable.
 - `?live=1` disables the fallback and waits for the live backend.
 - The default pace is for a live walkthrough of about three minutes, at real time: one incident at a time to start with (at most three at once), the referee rejecting a false fix at about 0:45, the first promotion from super to lightning at about 1:20, and no automatic storm before about 3:20, so the presenter can press S when ready.
 - `?pace=fast` restores the original pace (2.5x, a rejection and a promotion inside about 30 seconds), as used for the recorded video.
 - P pauses and resumes the simulated fleet, so you can talk over a frozen moment.
+- A storm at the presenter pace breaks three nodes at once, then triage takes them one at a time, about seven seconds apart, so each node's story can be followed and narrated.
 
 ## Keys
 

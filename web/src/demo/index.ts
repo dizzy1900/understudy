@@ -60,16 +60,13 @@ export function startDemo(): void {
     lastTick = now;
     if (!paused) sim?.advance(dt * speed);
   }, TICK_MS);
-  useStream
-    .getState()
-    .pushCaption("Demo mode: no live backend here, so a simulated fleet is running in your browser. Numbers are synthetic.", "high");
 }
 
 /** Pauses or resumes the simulated fleet (the P key), so a presenter can talk over a frozen moment. */
 export function toggleDemoPause(): boolean {
   if (!sim) return false;
   paused = !paused;
-  useStream.getState().pushCaption(paused ? "Demo paused. Press P to resume." : "Demo resumed.", "high");
+  useStream.getState().pushCaption(paused ? "Paused. Press P to resume." : "Resumed.", "high");
   return true;
 }
 

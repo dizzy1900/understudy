@@ -7,7 +7,7 @@ const BACKOFF_START_MS = 500;
 const BACKOFF_CAP_MS = 8000;
 const HYDRATE_WINDOW_S = 150;
 /** With no live stream by then, the in-browser demo takes over so the page is never dead. */
-export const DEMO_AFTER_MS = 4000;
+export const DEMO_AFTER_MS = 1500;
 /** While the demo runs, keep looking for a live backend, but quietly. */
 const DEMO_RETRY_MS = 30_000;
 

@@ -20,7 +20,7 @@ interface Placement {
   shown: boolean;
 }
 
-const MAX_VISIBLE = 4;
+const MAX_VISIBLE = 3;
 const GAP = 16;
 const EDGE = 10;
 const PAD = 8;

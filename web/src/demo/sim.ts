@@ -18,6 +18,10 @@ export interface Pacing {
   promoterEvery: number;
   /** Seconds between new incidents, as [min, max]. */
   arrival: [number, number];
+  /** Nodes a storm breaks, as [min, max]. */
+  stormSize: [number, number];
+  /** Story seconds between storm incidents reaching triage, so they are worked one at a time. */
+  stormStagger: number;
 }
 
 /** The original pace: a lot happens in the first 30 seconds. Used by ?pace=fast and the tests. */
@@ -30,6 +34,8 @@ export const FAST_PACING: Pacing = {
   promoterFirst: 18,
   promoterEvery: 40,
   arrival: [8, 18],
+  stormSize: [3, 6],
+  stormStagger: 0,
 };
 
 /**
@@ -45,6 +51,8 @@ export const PRESENTER_PACING: Pacing = {
   promoterFirst: 70,
   promoterEvery: 75,
   arrival: [14, 24],
+  stormSize: [3, 3],
+  stormStagger: 7,
 };
 const PROVING_TRIALS = 5;
 const HISTORY_LIMIT = 3000;
@@ -123,6 +131,8 @@ export class DemoSim {
   private promoterCycles = 0;
   private promoting = false;
   private nextRejection = 0;
+  /** Story time at which triage is free for the next storm incident. */
+  private triageFreeAt = 0;
   private away: { since: number; counts: Counts; cost: number } | null = null;
 
   constructor(
@@ -394,7 +404,7 @@ export class DemoSim {
   storm(rows: number[] | null): { node_id: string; fault_class: string }[] {
     const candidates = this.freeLiveNodes(rows);
     const room = Math.max(FAST_PACING.maxDown, this.pacing.maxDown) - this.downCount();
-    const count = Math.min(this.randint(3, 6), candidates.length, Math.max(room, 0));
+    const count = Math.min(this.randint(...this.pacing.stormSize), candidates.length, Math.max(room, 0));
     const pool = [...candidates];
     const injected: { node_id: string; fault_class: string }[] = [];
     for (let i = 0; i < count; i++) {
@@ -403,7 +413,13 @@ export class DemoSim {
       if (this.inject(node_id, fault_class, true)) injected.push({ node_id, fault_class });
     }
     if (injected.length) {
-      this.spawn(this.narrate(`Storm: ${injected.length} nodes failing at once. Responders are being dispatched.`, "high"));
+      const ids = injected.map((i) => i.node_id);
+      const list = ids.length > 1 ? `${ids.slice(0, -1).join(", ")} and ${ids[ids.length - 1]}` : ids[0];
+      const text = this.pacing.stormStagger
+        ? `Storm: ${list} are failing at once. Triage takes them one at a time.`
+        : `Storm: ${injected.length} nodes failing at once. Responders are being dispatched.`;
+      this.triageFreeAt = Math.max(this.triageFreeAt, this.t + 4);
+      this.spawn(this.narrate(text, "high"));
     }
     return injected;
   }
@@ -437,11 +453,17 @@ export class DemoSim {
     const severity = storm || HIGH_SEVERITY.has(faultClass) ? "high" : "low";
     this.emit({ type: "incident_opened", ts: 0, data: { incident_id: inc, node_id: nodeId, symptom: fault.symptom, severity } });
 
+    // In a storm, triage takes the downed nodes one at a time, so each one's story can be followed.
+    if (storm && this.pacing.stormStagger > 0) {
+      const wait = Math.max(0, this.triageFreeAt - this.t);
+      this.triageFreeAt = this.t + wait + this.pacing.stormStagger;
+      if (wait > 0) yield wait;
+    }
     const rung: Rung = this.ladder[faultClass] ?? "super";
     let cost = 0.0006 + 0.004 + 0.005;
     yield* this.shortAgent("triage", "nano", `Log and probe evidence match ${faultClass}.`, inc, nodeId);
     yield* this.shortAgent("commander", "super", `${faultClass} is on the ${rung} rung. Spawning a ${rung} responder.`, inc, nodeId);
-    yield* this.narrate(`${nodeId} is down: ${fault.symptom}. A ${rung} responder is on it.`, storm ? "high" : "low", inc);
+    yield* this.narrate(`${nodeId} is down: ${fault.symptom}. A ${rung} responder is on it.`, storm && !this.pacing.stormStagger ? "high" : "low", inc);
     this.setStatus(nodeId, "repairing");
 
     let steps = 0;
